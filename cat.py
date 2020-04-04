@@ -91,7 +91,7 @@ def main(iracelog):
     data['bkv'] = 'NA'
     for instance in data['instance'].unique().tolist():
         data.loc[data['instance'] == instance, 'bkv'] = data[data['instance'] == instance]['value'].min()
-    data['reldev'] = (data['value'] / data['bkv'] - 1) * 100
+    data['reldev'] = abs(1 - (data['value'] / data['bkv']))
 
     plot(data)
 
