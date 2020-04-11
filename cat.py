@@ -21,7 +21,7 @@ desc = '''
 -------------------------------------------------------------------------------
 '''
 
-def plot(data):
+def plot(data, restarts):
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     ax.set_xlim((1, data['id'].max()))
@@ -38,8 +38,9 @@ def plot(data):
     fig.legend([regular, elite, final, best], ['regular execution', 'elite configuration', 'final elite configuration', 'best found configuration'], loc = 'center', bbox_to_anchor = (0.5, 0.03), ncol = 5, handletextpad = -0.3, columnspacing = 0.5)
 
     iterationPoints = data.groupby('iteration', as_index = False).agg({'id': 'first'})['id'].tolist()
-    for point in iterationPoints:
-        plt.axvline(x = point, color = 'k', linestyle = '--', linewidth = .8)
+    for point, restart in zip(iterationPoints, restarts):
+        color = 'r' if restart else 'k'
+        plt.axvline(x = point, color = color, linestyle = ':', linewidth = 1.5)
     ax.set_xticks(iterationPoints)
 
     iterations = data['iteration'].unique().tolist()
@@ -62,8 +63,7 @@ def plot(data):
     plt.show()
 
 
-
-def main(iracelog):
+def read(iracelog):
     robjects.r['load'](iracelog)
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
@@ -93,7 +93,13 @@ def main(iracelog):
         data.loc[data['instance'] == instance, 'bkv'] = data[data['instance'] == instance]['value'].min()
     data['reldev'] = abs(1 - (data['value'] / data['bkv']))
 
-    plot(data)
+    restarts = [bool(item) for item in np.array(robjects.r('iraceResults$softRestart'))]
+    return data, restarts
+
+
+def main(iracelog):
+    data, restarts = read(iracelog)
+    plot(data, restarts)
 
 
 if __name__ == "__main__":
