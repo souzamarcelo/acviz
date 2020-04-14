@@ -4,13 +4,11 @@ import argparse
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from matplotlib import lines as mlines
 from rpy2 import robjects
 from math import log
 from math import ceil
 from copy import copy
-
-import matplotlib.lines as mlines
-
 
 
 desc = '''
