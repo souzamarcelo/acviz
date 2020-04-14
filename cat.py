@@ -57,7 +57,6 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
     if showInstances:
         for element in legendElements: element.set_edgecolor('black'); element.set_facecolor('grey')
     
-    restarts[2] = True
     legendRegular = False; legendRestart = False
     iterationPoints = data.groupby('iteration', as_index = False).agg({'id': 'first'})['id'].tolist()
     for point, restart in zip(iterationPoints, restarts):
