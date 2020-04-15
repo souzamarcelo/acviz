@@ -163,8 +163,8 @@ def main(iracelog, showElites, showInstances, showConfigurations, pconfig, expor
         print('> data exported to export/' + output + '.csv')
     if exportPlot:
         if not os.path.exists('./export'): os.mkdir('./export')
-        plt.savefig('./export/' + output + '.pdf', format = 'pdf', dpi = 1000)
-        plt.savefig('./export/' + output + '.png', format = 'png', dpi = 1000)
+        plt.savefig('./export/' + output + '.pdf', format = 'pdf')
+        plt.savefig('./export/' + output + '.png', format = 'png')
         print('> Plot exported to export/' + output + '.pdf')
         print('> Plot exported to export/' + output + '.png')
     else:
