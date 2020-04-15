@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import os
 import sys
 import argparse
 import numpy as np
@@ -9,7 +10,6 @@ from rpy2 import robjects
 from math import log
 from math import ceil
 from copy import copy
-
 
 desc = '''
 -------------------------------------------------------------------------------
@@ -140,18 +140,35 @@ def read(iracelog):
     return data, restarts
 
 
-def main(iracelog, showElites, showInstances, showConfigurations, pconfig):
+def main(iracelog, showElites, showInstances, showConfigurations, pconfig, exportData, exportPlot, output):
     print(desc)
-    settings = 'Settings:\n  > plot evolution of the configuration process\n'
-    if showElites: settings += '  > show elite configurations\n'
-    if showInstances: settings += '  > identify instances\n'
-    if showConfigurations: settings += '  > show configurations of the best performers\n'
-    if showConfigurations: settings += '  > pconfig = %d\n' % pconfig
+    settings = '> Settings:\n  - plot evolution of the configuration process\n'
+    if showElites: settings += '  - show elite configurations\n'
+    if showInstances: settings += '  - identify instances\n'
+    if showConfigurations: settings += '  - show configurations of the best performers\n'
+    if showConfigurations: settings += '  - pconfig = %d\n' % pconfig
+    if exportData: settings += '  - export data to csv\n'
+    if exportPlot: settings += '  - export plot to pdf and png\n'
+    if exportData or exportPlot: settings += '  - output file name: %s\n' % output
     print(settings)
     
     data, restarts = read(iracelog)
     plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconfig)
-    plt.show()
+    
+    if exportData:
+        if not os.path.exists('./export'): os.mkdir('./export')
+        file = open('./export/' + output + '.csv', 'w')
+        file.write(data.to_csv())
+        file.close()
+        print('> data exported to export/' + output + '.csv')
+    if exportPlot:
+        if not os.path.exists('./export'): os.mkdir('./export')
+        plt.savefig('./export/' + output + '.pdf', format = 'pdf', dpi = 1000)
+        plt.savefig('./export/' + output + '.png', format = 'png', dpi = 1000)
+        print('> Plot exported to export/' + output + '.pdf')
+        print('> Plot exported to export/' + output + '.png')
+    else:
+        plt.show()
     print('-------------------------------------------------------------------------------')
 
 
@@ -166,7 +183,10 @@ if __name__ == "__main__":
     optional.add_argument('--configurations', help = 'enables identification of configurations (disabled by default)', action = 'store_true')
     optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 10)', metavar = '<p>', default = 10, type = int)
     optional.add_argument('--instances', help = 'enables identification of instances (disabled by default)', action = 'store_true')
+    optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
+    optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
+    optional.add_argument('--output', help = 'defines a name for the output files', metavar = '<name>', type = str)
     args = parser.parse_args()
     if args.version: print(desc); exit()
     if not args.iracelog: print('Invalid arguments!\nPlease input the irace log file using \'--iracelog <file>\'\n'); parser.print_help(); exit()
-    main(args.iracelog, args.elites, args.instances, args.configurations, args.pconfig)
+    main(args.iracelog, args.elites, args.instances, args.configurations, args.pconfig, args.exportdata, args.exportplot, (args.output if args.output else args.iracelog[args.iracelog.rfind('/')+1:].replace('.Rdata', '')))
