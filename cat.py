@@ -73,8 +73,8 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
     ax.set_xticks(iterationPoints)
     
     iterations = data['iteration'].unique().tolist()
-    avg = [data[data['iteration'] == iteration]['reldev'].map(log).mean() for iteration in iterations]
-    best = [data[(data['iteration'] == iteration) & ((data['type'] == 'elite') | (data['type'] == 'final') | (data['type'] == 'best'))]['reldev'].map(log).mean() for iteration in iterations]
+    avg = [data[data['iteration'] == iteration]['reldev'].map(log).median() for iteration in iterations]
+    best = [data[(data['iteration'] == iteration) & ((data['type'] == 'elite') | (data['type'] == 'final') | (data['type'] == 'best'))]['reldev'].map(log).median() for iteration in iterations]
     iterationPoints.append(data['id'].max())
     for i in range(len(iterations)):
         plt.plot([iterationPoints[i], iterationPoints[i + 1]], [avg[i], avg[i]], linestyle = '-', color = '#FF8C00', linewidth = 1.8)
