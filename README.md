@@ -72,7 +72,7 @@ python3 cat.py --iracelog examples/acotsp.Rdata --elites
 
 In this case, **cat** will present the corresponding plot with each execution performed in the configuration process and the obtained relative deviation from the best found solution (logscale). Elite, final elite, and the best found configurations are presented using different markers and colors (since `--elites` is enabled), according to the provided legend. For each iteration, the plot presents the median performances (overall and of the elite candidates).
 
-![](./examples/example-acotsp1.png)
+![](./examples/acotsp1.png)
 
 We can enable the identification of instances by adding the `--instances` option. we can also enable the identification of configurations by adding the `--configurations` option. By setting `--pconfig 5` (see command below), it will produce a plot with the 5% best executions of each iteration identified with the corresponding configuration.
 
@@ -82,4 +82,4 @@ python3 cat.py --iracelog examples/acotsp.Rdata --elites --instances --configura
 
 The output plot is:
 
-![](./examples/example-acotsp2.png)
+![](./examples/acotsp2.png)
