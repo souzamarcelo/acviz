@@ -106,10 +106,12 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
     fig.subplots_adjust(left = 0.06)
 
 
-def read(iracelog):
+def read(iracelog, bkv):
     robjects.r['load'](iracelog)
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
+    iraceInstances = np.array(robjects.r('iraceResults$state$.irace$instancesList'))[0]
+    iraceInstanceNames = np.array(robjects.r('iraceResults$scenario$instances'))
 
     elites = []
     for i in range(1, int(robjects.r('iraceResults$state$indexIteration')[0])):
@@ -130,19 +132,31 @@ def read(iracelog):
                               'regular')
         experiments.append(experiment)
     data = pd.DataFrame(experiments)
+    data['instance'] = data['instance'].map(lambda x: iraceInstances[x - 1])
+    data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1:iraceInstanceNames[x - 1].rindex('.')])
 
-    data['bkv'] = 'NA'
+    if bkv is not None:
+        bkv = pd.read_csv(bkv, sep = ':', header = None, names = ['instancename', 'bkv'])
+        bkv['bkv'] = pd.to_numeric(bkv['bkv'], errors = 'coerce')
+        data = pd.merge(data, bkv, on = 'instancename')
+    else:
+        data['bkv'] = float('inf')
+
     for instance in data['instance'].unique().tolist():
-        data.loc[data['instance'] == instance, 'bkv'] = data[data['instance'] == instance]['value'].min()
+        data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
+    
     data['reldev'] = abs(1 - (data['value'] / data['bkv']))
 
     restarts = [bool(item) for item in np.array(robjects.r('iraceResults$softRestart'))]
     return data, restarts
 
 
-def main(iracelog, showElites, showInstances, showConfigurations, pconfig, exportData, exportPlot, output):
+def main(iracelog, showElites, showInstances, showConfigurations, pconfig, exportData, exportPlot, output, bkv):
     print(desc)
-    settings = '> Settings:\n  - plot evolution of the configuration process\n'
+    settings = '> Settings:\n'
+    settings += '  - plot evolution of the configuration process\n'
+    settings += '  - irace log file: ' + iracelog + '\n'
+    if bkv is not None: settings += '  - bkv file: ' + str(bkv) + '\n'
     if showElites: settings += '  - show elite configurations\n'
     if showInstances: settings += '  - identify instances\n'
     if showConfigurations: settings += '  - show configurations of the best performers\n'
@@ -151,8 +165,8 @@ def main(iracelog, showElites, showInstances, showConfigurations, pconfig, expor
     if exportPlot: settings += '  - export plot to pdf and png\n'
     if exportData or exportPlot: settings += '  - output file name: %s\n' % output
     print(settings)
-    
-    data, restarts = read(iracelog)
+
+    data, restarts = read(iracelog, bkv)
     plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconfig)
     
     if exportData:
@@ -179,6 +193,7 @@ if __name__ == "__main__":
     optional = parser.add_argument_group('optional arguments')
     required.add_argument('--iracelog', help = 'input of irace log file (.Rdata)', metavar = '<file>', required = ('--version' not in sys.argv and '-v' not in sys.argv))
     optional.add_argument('-v', '--version', help = 'show description and exit', action = 'store_true')
+    optional.add_argument('--bkv', help = 'file containing best known values for the instances used (null by default)', metavar = '<file>')
     optional.add_argument('--elites', help = 'enables identification of elite configurations (disabled by default)', action = 'store_true')
     optional.add_argument('--configurations', help = 'enables identification of configurations (disabled by default)', action = 'store_true')
     optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 10)', metavar = '<p>', default = 10, type = int)
@@ -189,4 +204,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.version: print(desc); exit()
     if not args.iracelog: print('Invalid arguments!\nPlease input the irace log file using \'--iracelog <file>\'\n'); parser.print_help(); exit()
-    main(args.iracelog, args.elites, args.instances, args.configurations, args.pconfig, args.exportdata, args.exportplot, (args.output if args.output else args.iracelog[args.iracelog.rfind('/')+1:].replace('.Rdata', '')))
+    main(args.iracelog, args.elites, args.instances, args.configurations, args.pconfig, args.exportdata, args.exportplot, (args.output if args.output else args.iracelog[args.iracelog.rfind('/')+1:].replace('.Rdata', '')), args.bkv)
