@@ -39,10 +39,11 @@ def updateAnnotations(ind, pathCollection, data):
     index = ind['ind'][0]
     data = data.iloc[[index]]
     annotations.xy = pathCollection.get_offsets()[index]
+    exec = data['id'].unique()[0]
     config = data['configuration'].unique()[0]
     instance = data['instance'].unique()[0]
     instancename = data['instancename'].unique()[0]
-    annotations.set_text('instance: %d (%s)\nconfiguration: %d' % (instance, instancename, config))
+    annotations.set_text('execution: %d\ninstance: %d (%s)\nconfiguration: %d' % (exec, instance, instancename, config))
     annotations.get_bbox_patch().set_facecolor(data['color'].unique()[0])
     annotations.get_bbox_patch().set_alpha(0.6)
 
@@ -97,7 +98,7 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
     if showInstances:
         for element in legendElements: element.set_edgecolor('black'); element.set_facecolor('grey')
 
-    annotations = ax.annotate('', xy = (0, 0), xytext = (0, 20), textcoords = 'offset points', bbox = dict(boxstyle = 'round'), ha = 'center')
+    annotations = ax.annotate('', xy = (0, 0), xytext = (0, 20), textcoords = 'offset points', bbox = dict(boxstyle = 'round'), ha = 'left')
     annotations.set_visible(False)
 
     legendRegular = False; legendRestart = False
@@ -191,6 +192,7 @@ def read(iracelog, bkv):
     data['reldev'] = abs(1 - (data['value'] / data['bkv']))
 
     restarts = [bool(item) for item in np.array(robjects.r('iraceResults$softRestart'))]
+    if len(restarts) < len(data['iteration'].unique()): restarts.insert(0, False)
     return data, restarts
 
 
