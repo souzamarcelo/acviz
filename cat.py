@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import os
 import sys
+import math
 import argparse
 import numpy as np
 import pandas as pd
@@ -70,10 +71,10 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
     global annotations, ax, fig, plotData
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
-    ax.set_xlim((1, data['id'].max()))
+    ax.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
     
     plt.title('Evolution of the configuration process')
-    plt.xlabel('candidate evaluations [from %d to %d]' % (1, data['id'].max()))
+    plt.xlabel('candidate evaluations [from %d to %d]' % (data['xaxis'].min(), data['xaxis'].max()))
     plt.ylabel('solution quality [relative deviation]')
 
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
@@ -86,14 +87,14 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
         plotData.append(data[data['type'] == 'elite'])
         plotData.append(data[data['type'] == 'final'])
         plotData.append(data[data['type'] == 'best'])
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'regular']['id'], data[data['type'] == 'regular']['reldev'].map(log), alpha = 1, c = data[data['type'] == 'regular']['color'], marker = 'x', linewidth = 0.5, s = 16)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'elite']['id'], data[data['type'] == 'elite']['reldev'].map(log), alpha = 1, c = data[data['type'] == 'elite']['color'], edgecolors = 'black', marker = 'o', linewidth = 0.7, s = 24)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'final']['id'], data[data['type'] == 'final']['reldev'].map(log), alpha = 1, c = data[data['type'] == 'final']['color'], edgecolors = 'black', marker = 'D', linewidth = 0.7, s = 22)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'best']['id'], data[data['type'] == 'best']['reldev'].map(log), alpha = 1, c = data[data['type'] == 'best']['color'], edgecolors = 'black', marker = '*', linewidth = 0.7, s = 70)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'regular']['xaxis'], data[data['type'] == 'regular']['reldev'].map(log), alpha = 1, c = data[data['type'] == 'regular']['color'], marker = 'x', linewidth = 0.5, s = 16)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'elite']['xaxis'], data[data['type'] == 'elite']['reldev'].map(log), alpha = 1, c = data[data['type'] == 'elite']['color'], edgecolors = 'black', marker = 'o', linewidth = 0.7, s = 24)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'final']['xaxis'], data[data['type'] == 'final']['reldev'].map(log), alpha = 1, c = data[data['type'] == 'final']['color'], edgecolors = 'black', marker = 'D', linewidth = 0.7, s = 22)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'best']['xaxis'], data[data['type'] == 'best']['reldev'].map(log), alpha = 1, c = data[data['type'] == 'best']['color'], edgecolors = 'black', marker = '*', linewidth = 0.7, s = 70)))
         legendDescriptions.extend(['regular exec.', 'elite config.', 'final elite config.', 'best found config.'])
     else:
         plotData.append(data)
-        legendElements.append(copy(plt.scatter(data['id'], data['reldev'].map(log), alpha = 1, c = data['color'], marker = 'x', linewidth = 0.5, s = 16)))
+        legendElements.append(copy(plt.scatter(data['xaxis'], data['reldev'].map(log), alpha = 1, c = data['color'], marker = 'x', linewidth = 0.5, s = 16)))
         legendDescriptions.append('regular exec.')
     if showInstances:
         for element in legendElements: element.set_edgecolor('black'); element.set_facecolor('grey')
@@ -102,7 +103,7 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
     annotations.set_visible(False)
 
     legendRegular = False; legendRestart = False
-    iterationPoints = data.groupby('iteration', as_index = False).agg({'id': 'first'})['id'].tolist()
+    iterationPoints = data.groupby('iteration', as_index = False).agg({'xaxis': 'first'})['xaxis'].tolist()
     for point, restart in zip(iterationPoints, restarts):
         color = '#B71C1C' if restart else 'k'
         line = plt.axvline(x = point, color = color, linestyle = '--', linewidth = 1.4)
@@ -119,7 +120,8 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
     iterations = data['iteration'].unique().tolist()
     avg = [data[data['iteration'] == iteration]['reldev'].map(log).median() for iteration in iterations]
     best = [data[(data['iteration'] == iteration) & ((data['type'] == 'elite') | (data['type'] == 'final') | (data['type'] == 'best'))]['reldev'].map(log).median() for iteration in iterations]
-    iterationPoints.append(data['id'].max())
+    iterationPoints.append(data['xaxis'].max())
+
     for i in range(len(iterations)):
         plt.plot([iterationPoints[i], iterationPoints[i + 1]], [avg[i], avg[i]], linestyle = '-', color = '#FF8C00', linewidth = 1.8)
         plt.plot([iterationPoints[i], iterationPoints[i + 1]], [best[i], best[i]], linestyle = '-', color = '#800080', linewidth = 1.8)
@@ -131,10 +133,10 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
     if showConfigurations:
         for iteration in iterations:
             amount = ceil(len(data[data['iteration'] == iteration]) * pconfig / 100)
-            data.groupby('iteration', as_index = False).agg({'id': 'count'})
+            data.groupby('iteration', as_index = False).agg({'xaxis': 'count'})
             best = data[data['iteration'] == iteration].sort_values('reldev', ascending = True).head(amount)
             names = best['configuration'].tolist()
-            x = best['id'].tolist()
+            x = best['xaxis'].tolist()
             y = best['reldev'].map(log).tolist()
             for i in range(len(x)):
                 ax.annotate(names[i], xy = (x[i], y[i]), xytext = (0, -8), textcoords = 'offset pixels', horizontalalignment = 'center', verticalalignment = 'center', fontsize = 5)
@@ -143,7 +145,7 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
     ax.tick_params(axis = 'both', which = 'major', labelsize = 9)
     plt.xticks(rotation = 90)
 
-    fig.set_size_inches(10, 6)
+    fig.set_size_inches(10, 6.5)
     fig.subplots_adjust(top = 0.95)
     fig.subplots_adjust(bottom = 0.21)
     fig.subplots_adjust(right = 0.99)
@@ -151,7 +153,7 @@ def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconf
     fig.canvas.mpl_connect("motion_notify_event", hover)
 
 
-def read(iracelog, bkv):
+def read(iracelog, bkv, overTime):
     robjects.r['load'](iracelog)
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
@@ -162,13 +164,15 @@ def read(iracelog, bkv):
     for i in range(1, int(robjects.r('iraceResults$state$indexIteration')[0])):
         elites.append([int(item) for item in str(robjects.r('iraceResults$allElites[[' + str(i) + ']]')).replace('[1]', '').strip().split()])
 
-    experiments = []; id = 0
+    experiments = []; id = 0; cumulativeTime = 0
     for i in range(len(iraceExpLog)):
         id += 1
         experiment = {}
         experiment['id'] = id
         experiment['iteration'] = int(iraceExpLog[i][0])
         experiment['instance'] = int(iraceExpLog[i][1])
+        experiment['startTime'] = cumulativeTime
+        cumulativeTime += float(iraceExpLog[i][3])
         experiment['configuration'] = int(iraceExpLog[i][2])
         experiment['value'] = iraceExp[experiment['instance'] - 1][experiment['configuration'] - 1]
         experiment['type'] = ('best' if experiment['configuration'] == elites[-1][0] else
@@ -177,6 +181,8 @@ def read(iracelog, bkv):
                               'regular')
         experiments.append(experiment)
     data = pd.DataFrame(experiments)
+    data['xaxis'] = data['startTime'] if overTime and not math.isnan(cumulativeTime) else data['id']
+    if overTime and math.isnan(cumulativeTime): print('  - You are trying to plot over time, but the irace run does not have running time data; setting overtime to false!')
     data['instance'] = data['instance'].map(lambda x: iraceInstances[x - 1])
     data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1:iraceInstanceNames[x - 1].rindex('.')])
 
@@ -196,7 +202,7 @@ def read(iracelog, bkv):
     return data, restarts
 
 
-def main(iracelog, showElites, showInstances, showConfigurations, pconfig, exportData, exportPlot, output, bkv):
+def main(iracelog, showElites, showInstances, showConfigurations, pconfig, exportData, exportPlot, output, bkv, overTime):
     print(desc)
     settings = '> Settings:\n'
     settings += '  - plot evolution of the configuration process\n'
@@ -206,12 +212,13 @@ def main(iracelog, showElites, showInstances, showConfigurations, pconfig, expor
     if showInstances: settings += '  - identify instances\n'
     if showConfigurations: settings += '  - show configurations of the best performers\n'
     if showConfigurations: settings += '  - pconfig = %d\n' % pconfig
+    if overTime: settings += '  - plotting over time\n'
     if exportData: settings += '  - export data to csv\n'
     if exportPlot: settings += '  - export plot to pdf and png\n'
     if exportData or exportPlot: settings += '  - output file name: %s\n' % output
     print(settings)
 
-    data, restarts = read(iracelog, bkv)
+    data, restarts = read(iracelog, bkv, overTime)
     plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconfig)
     
     if exportData:
@@ -243,10 +250,11 @@ if __name__ == "__main__":
     optional.add_argument('--configurations', help = 'enables identification of configurations (disabled by default)', action = 'store_true')
     optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 10)', metavar = '<p>', default = 10, type = int)
     optional.add_argument('--instances', help = 'enables identification of instances (disabled by default)', action = 'store_true')
+    optional.add_argument('--overtime', help = 'plot the execution over the accumulated configuration time (disabled by default)', action = 'store_true')
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
     optional.add_argument('--output', help = 'defines a name for the output files', metavar = '<name>', type = str)
     args = parser.parse_args()
     if args.version: print(desc); exit()
     if not args.iracelog: print('Invalid arguments!\nPlease input the irace log file using \'--iracelog <file>\'\n'); parser.print_help(); exit()
-    main(args.iracelog, args.elites, args.instances, args.configurations, args.pconfig, args.exportdata, args.exportplot, (args.output if args.output else args.iracelog[args.iracelog.rfind('/')+1:].replace('.Rdata', '')), args.bkv)
+    main(args.iracelog, args.elites, args.instances, args.configurations, args.pconfig, args.exportdata, args.exportplot, (args.output if args.output else args.iracelog[args.iracelog.rfind('/')+1:].replace('.Rdata', '')), args.bkv, args.overtime)
