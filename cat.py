@@ -67,14 +67,14 @@ def hover(event):
             fig.canvas.draw_idle()
 
 
-def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconfig):
+def plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconfig, overTime):
     global annotations, ax, fig, plotData
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
     ax.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
-    
+
     plt.title('Evolution of the configuration process')
-    plt.xlabel('candidate evaluations [from %d to %d]' % (data['xaxis'].min(), data['xaxis'].max()))
+    plt.xlabel(('candidate evaluations [from %d to %d]' % (data['xaxis'].min(), data['xaxis'].max())) if not overTime else 'cumulative running time [in seconds]')
     plt.ylabel('solution quality [relative deviation]')
 
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
@@ -219,7 +219,7 @@ def main(iracelog, showElites, showInstances, showConfigurations, pconfig, expor
     print(settings)
 
     data, restarts = read(iracelog, bkv, overTime)
-    plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconfig)
+    plotEvo(data, restarts, showElites, showInstances, showConfigurations, pconfig, overTime)
     
     if exportData:
         if not os.path.exists('./export'): os.mkdir('./export')
