@@ -182,7 +182,7 @@ def read(iracelog, objective, bkv, overTime):
         experiments.append(experiment)
     data = pd.DataFrame(experiments)
     data['xaxis'] = data['startTime'] if overTime and not math.isnan(cumulativeTime) else data['id']
-    if overTime and math.isnan(cumulativeTime): print('  - You are trying to plot over time, but the irace run does not have running time data; setting overtime to false!')
+    if overTime and math.isnan(cumulativeTime): print('  - You are trying to plot over time, but the irace log file does not have running time data; setting overtime to false!'); overTime = False
     data['instance'] = data['instance'].map(lambda x: iraceInstances[x - 1])
     data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1:iraceInstanceNames[x - 1].rindex('.')])
 
@@ -201,7 +201,7 @@ def read(iracelog, objective, bkv, overTime):
     
     restarts = [bool(item) for item in np.array(robjects.r('iraceResults$softRestart'))]
     if len(restarts) < len(data['iteration'].unique()): restarts.insert(0, False)
-    return data, restarts
+    return data, restarts, overTime
 
 
 def main(iracelog, objective, showElites, showInstances, showConfigurations, pconfig, exportData, exportPlot, output, bkv, overTime):
@@ -220,7 +220,7 @@ def main(iracelog, objective, showElites, showInstances, showConfigurations, pco
     if exportData or exportPlot: settings += '  - output file name: %s\n' % output
     print(settings)
 
-    data, restarts = read(iracelog, objective, bkv, overTime)
+    data, restarts, overTime = read(iracelog, objective, bkv, overTime)
     plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime)
     
     if exportData:
