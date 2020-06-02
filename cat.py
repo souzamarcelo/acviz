@@ -115,6 +115,7 @@ def plotEvo(data, restarts, objective, showElites, showInstances, showConfigurat
             legendDescriptions.append('iteration with restart')
             legendRestart = True
     ax.set_xticks(iterationPoints)
+    ax.set_yticklabels(['$10^{%d}$' % tick for tick in ax.get_yticks()])
     
     iterations = data['iteration'].unique().tolist()
     avg = [data[data['iteration'] == iteration]['yaxis'].median() for iteration in iterations]
