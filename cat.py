@@ -67,7 +67,7 @@ def __hover(event):
             fig.canvas.draw_idle()
 
 
-def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime):
+def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips):
     global annotations, ax, fig, plotData
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
@@ -150,7 +150,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     fig.subplots_adjust(bottom = 0.21)
     fig.subplots_adjust(right = 0.99)
     fig.subplots_adjust(left = 0.07)
-    fig.canvas.mpl_connect("motion_notify_event", __hover)
+    if showToolTips: fig.canvas.mpl_connect('motion_notify_event', __hover)
 
 
 def __read(iracelog, objective, bkv, overTime):
@@ -204,9 +204,9 @@ def __read(iracelog, objective, bkv, overTime):
     return data, restarts, overTime
 
 
-def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False):
+def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, plt = None, showToolTips = True):
     data, restarts, overTime = __read(iracelog, objective, bkv, overTime)
-    __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime)
+    __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips)
     if exportData:
         if not os.path.exists('./export'): os.mkdir('./export')
         file = open('./export/' + output + '.csv', 'w')
@@ -275,6 +275,8 @@ if __name__ == "__main__":
         exportPlot = args.exportplot,
         output = args.output,
         bkv = args.bkv,
-        overTime = args.overtime
+        overTime = args.overtime,
+        plt = None,
+        showToolTips = True
     )
     print('-------------------------------------------------------------------------------')
