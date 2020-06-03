@@ -4,7 +4,7 @@ This Python script provides a set of functions to analyze the evolution of the a
 
 **Maintainer:** [Marcelo de Souza](https://souzamarcelo.github.io).
 
-**Contributors:** [Marcelo de Souza](https://souzamarcelo.github.io) and [Marcus Ritt](https://www.inf.ufrgs.br/~mrpritt).
+**Other contributors:** [Marcus Ritt](https://www.inf.ufrgs.br/~mrpritt), [Manuel López-Ibáñez](http://lopez-ibanez.eu) and [Leslie Pérez Cáceres](https://sites.google.com/site/leslieperez).
 
 If you have any difficult or want to collaborate with us, please write to me: marcelo.desouza@udesc.br.
 
