@@ -149,7 +149,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     fig.subplots_adjust(top = 0.95)
     fig.subplots_adjust(bottom = 0.21)
     fig.subplots_adjust(right = 0.99)
-    fig.subplots_adjust(left = 0.06)
+    fig.subplots_adjust(left = 0.07)
     fig.canvas.mpl_connect("motion_notify_event", __hover)
 
 
