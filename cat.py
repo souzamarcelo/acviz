@@ -36,7 +36,7 @@ colors = ['#EF9A9A','#1A237E','#B71C1C','#00C853','#F57F17','#424242','#FDD835',
           '#757575','#64DD17','#EEFF41','#7C4DFF','#33691E','#90CAF9','#AA00FF','#FFF176','#8BC34A','#009688','#9E9D24']
 
 
-def updateAnnotations(ind, pathCollection, data):
+def __updateAnnotations(ind, pathCollection, data):
     index = ind['ind'][0]
     data = data.iloc[[index]]
     annotations.xy = pathCollection.get_offsets()[index]
@@ -49,7 +49,7 @@ def updateAnnotations(ind, pathCollection, data):
     annotations.get_bbox_patch().set_alpha(0.6)
 
 
-def hover(event):
+def __hover(event):
     vis = annotations.get_visible()
     if event.inaxes == ax:
         found = False
@@ -57,7 +57,7 @@ def hover(event):
             pathCollection = ax.collections[i]
             cont, ind = pathCollection.contains(event)
             if cont:
-                updateAnnotations(ind, pathCollection, plotData[i])
+                __updateAnnotations(ind, pathCollection, plotData[i])
                 annotations.set_visible(True)
                 fig.canvas.draw_idle()
                 found = True
@@ -67,7 +67,7 @@ def hover(event):
             fig.canvas.draw_idle()
 
 
-def plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime):
+def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime):
     global annotations, ax, fig, plotData
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
@@ -150,10 +150,10 @@ def plotEvo(data, restarts, objective, showElites, showInstances, showConfigurat
     fig.subplots_adjust(bottom = 0.21)
     fig.subplots_adjust(right = 0.99)
     fig.subplots_adjust(left = 0.06)
-    fig.canvas.mpl_connect("motion_notify_event", hover)
+    fig.canvas.mpl_connect("motion_notify_event", __hover)
 
 
-def read(iracelog, objective, bkv, overTime):
+def __read(iracelog, objective, bkv, overTime):
     robjects.r['load'](iracelog)
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
@@ -204,25 +204,9 @@ def read(iracelog, objective, bkv, overTime):
     return data, restarts, overTime
 
 
-def main(iracelog, objective, showElites, showInstances, showConfigurations, pconfig, exportData, exportPlot, output, bkv, overTime):
-    print(desc)
-    settings = '> Settings:\n'
-    settings += '  - plot evolution of the configuration process\n'
-    settings += '  - irace log file: ' + iracelog + '\n'
-    if bkv is not None: settings += '  - bkv file: ' + str(bkv) + '\n'
-    if showElites: settings += '  - show elite configurations\n'
-    if showInstances: settings += '  - identify instances\n'
-    if showConfigurations: settings += '  - show configurations of the best performers\n'
-    if showConfigurations: settings += '  - pconfig = %d\n' % pconfig
-    if overTime: settings += '  - plotting over time\n'
-    if exportData: settings += '  - export data to csv\n'
-    if exportPlot: settings += '  - export plot to pdf and png\n'
-    if exportData or exportPlot: settings += '  - output file name: %s\n' % output
-    print(settings)
-
-    data, restarts, overTime = read(iracelog, objective, bkv, overTime)
-    plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime)
-    
+def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False):
+    data, restarts, overTime = __read(iracelog, objective, bkv, overTime)
+    __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime)
     if exportData:
         if not os.path.exists('./export'): os.mkdir('./export')
         file = open('./export/' + output + '.csv', 'w')
@@ -236,8 +220,10 @@ def main(iracelog, objective, showElites, showInstances, showConfigurations, pco
         print('> Plot exported to export/' + output + '.pdf')
         print('> Plot exported to export/' + output + '.png')
     else:
-        plt.show()
-    print('-------------------------------------------------------------------------------')
+        if showPlot:
+            plt.show()
+        else:
+            return plt
 
 
 if __name__ == "__main__":
@@ -261,4 +247,34 @@ if __name__ == "__main__":
     if args.version: print(desc); exit()
     if not args.iracelog: print('Invalid arguments!\nPlease input the irace log file using \'--iracelog <file>\'\n'); parser.print_help(); exit()
     if args.objective.lower() not in ('cost', 'time'): print('Invalid objective. Use wither COST or TIME.'); parser.print_help(); exit()
-    main(args.iracelog, args.objective.lower(), args.elites, args.instances, args.configurations, args.pconfig, args.exportdata, args.exportplot, (args.output if args.output else args.iracelog[args.iracelog.rfind('/')+1:].replace('.Rdata', '')), args.bkv, args.overtime)
+    
+    print(desc)
+    settings = '> Settings:\n'
+    settings += '  - plot evolution of the configuration process\n'
+    settings += '  - irace log file: ' + args.iracelog + '\n'
+    if args.bkv is not None: settings += '  - bkv file: ' + str(args.bkv) + '\n'
+    if args.elites: settings += '  - show elite configurations\n'
+    if args.instances: settings += '  - identify instances\n'
+    if args.configurations: settings += '  - show configurations of the best performers\n'
+    if args.configurations: settings += '  - pconfig = %d\n' % args.pconfig
+    if args.overtime: settings += '  - plotting over time\n'
+    if args.exportdata: settings += '  - export data to csv\n'
+    if args.exportplot: settings += '  - export plot to pdf and png\n'
+    if args.exportdata or args.exportplot: settings += '  - output file name: %s\n' % args.output
+    print(settings)
+    
+    getPlot(
+        iracelog = args.iracelog,
+        objective = args.objective,
+        showElites = args.elites,
+        showInstances = args.instances,
+        showConfigurations = args.configurations,
+        pconfig = args.pconfig,
+        showPlot = True,
+        exportData = args.exportdata,
+        exportPlot = args.exportplot,
+        output = args.output,
+        bkv = args.bkv,
+        overTime = args.overtime
+    )
+    print('-------------------------------------------------------------------------------')
