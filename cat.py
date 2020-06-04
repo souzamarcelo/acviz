@@ -126,9 +126,9 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
         plt.plot([iterationPoints[i], iterationPoints[i + 1]], [avg[i], avg[i]], linestyle = '-', color = '#FF8C00', linewidth = 1.8)
         plt.plot([iterationPoints[i], iterationPoints[i + 1]], [best[i], best[i]], linestyle = '-', color = '#800080', linewidth = 1.8)
     legendElements.append(mlines.Line2D([], [], color='#FF8C00', linewidth = 1.8))
-    legendDescriptions.append('performance on iteration')
+    legendDescriptions.append('median iteration')
     legendElements.append(mlines.Line2D([], [], color='#800080', linewidth = 1.8))
-    legendDescriptions.append('performance of elites')
+    legendDescriptions.append('median elites')
     
     if showConfigurations:
         for iteration in iterations:
@@ -141,7 +141,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
             for i in range(len(x)):
                 ax.annotate(names[i], xy = (x[i], y[i]), xytext = (0, -8), textcoords = 'offset pixels', horizontalalignment = 'center', verticalalignment = 'center', fontsize = 5)
 
-    fig.legend(legendElements, legendDescriptions, loc = 'center', bbox_to_anchor = (0.5, 0.05), ncol = 4, handletextpad = 0.5, columnspacing = 1.8)
+    fig.legend(legendElements, legendDescriptions, loc = 'center', bbox_to_anchor = (0.5, 0.06), ncol = 4, handletextpad = 0.5, columnspacing = 1.8)
     ax.tick_params(axis = 'both', which = 'major', labelsize = 9)
     plt.xticks(rotation = 90)
 
@@ -204,7 +204,9 @@ def __read(iracelog, objective, bkv, overTime):
     return data, restarts, overTime
 
 
-def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, plt = None, showToolTips = True):
+def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True):
+    global plt
+    if userPlt is not None: plt = userPlt 
     data, restarts, overTime = __read(iracelog, objective, bkv, overTime)
     __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips)
     if exportData:
@@ -276,7 +278,7 @@ if __name__ == "__main__":
         output = args.output,
         bkv = args.bkv,
         overTime = args.overtime,
-        plt = None,
+        userPlt = None,
         showToolTips = True
     )
     print('-------------------------------------------------------------------------------')
