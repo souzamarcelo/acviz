@@ -8,8 +8,6 @@ This Python script provides a set of functions to analyze the automatic algorith
 
 If you have any difficult or want to collaborate with us, please write to me: marcelo.desouza@udesc.br.
 
-***
-
 ## Dependencies
 
 The script requires [Python 3.x](https://www.python.org) and the following Python modules (you can just install [anaconda](https://www.anaconda.com) to get Python with all modules included):
@@ -71,7 +69,6 @@ optional arguments:
 + `--exportplot`: exports the resulting plot in pdf and png formats. The output will be saved in `./export/<name>.pdf` and `./export/<name>.png`, where `<name>` is defined using the `--output` argument.
   + If no value for `--output` is provided, cat will use the name of the irace log file.
 
-***
 
 ## Examples
 
