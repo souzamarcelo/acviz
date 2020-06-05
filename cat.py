@@ -139,7 +139,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
             x = best['xaxis'].tolist()
             y = best['yaxis'].tolist()
             for i in range(len(x)):
-                ax.annotate(names[i], xy = (x[i], y[i]), xytext = (0, -8), textcoords = 'offset pixels', horizontalalignment = 'center', verticalalignment = 'center', fontsize = 5)
+                ax.annotate(names[i], xy = (x[i], y[i]), xytext = (0, -8), textcoords = 'offset pixels', horizontalalignment = 'center', verticalalignment = 'center', fontsize = 6)
 
     fig.legend(legendElements, legendDescriptions, loc = 'center', bbox_to_anchor = (0.5, 0.06), ncol = 4, handletextpad = 0.5, columnspacing = 1.8)
     ax.tick_params(axis = 'both', which = 'major', labelsize = 9)
@@ -236,12 +236,12 @@ if __name__ == "__main__":
     required.add_argument('--iracelog', help = 'input of irace log file (.Rdata)', metavar = '<file>', required = ('--version' not in sys.argv and '-v' not in sys.argv))
     optional.add_argument('-v', '--version', help = 'show description and exit', action = 'store_true')
     optional.add_argument('--objective', help = 'performance measure used by irace [cost or time] (default: cost)', metavar = '<obj>', default = 'cost', type = str)
+    optional.add_argument('--overtime', help = 'plot the execution over the accumulated configuration time (disabled by default)', action = 'store_true')
     optional.add_argument('--bkv', help = 'file containing best known values for the instances used (null by default)', metavar = '<file>')
     optional.add_argument('--elites', help = 'enables identification of elite configurations (disabled by default)', action = 'store_true')
     optional.add_argument('--configurations', help = 'enables identification of configurations (disabled by default)', action = 'store_true')
     optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 10)', metavar = '<p>', default = 10, type = int)
     optional.add_argument('--instances', help = 'enables identification of instances (disabled by default)', action = 'store_true')
-    optional.add_argument('--overtime', help = 'plot the execution over the accumulated configuration time (disabled by default)', action = 'store_true')
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
     optional.add_argument('--output', help = 'defines a name for the output files', metavar = '<name>', type = str)
