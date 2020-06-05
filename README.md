@@ -73,7 +73,7 @@ optional arguments:
 
 ***
 
-### Examples
+## Examples
 
 The [examples](examples) directory has an irace log file example, which contains the log data of the ACOTSP algorithm configuration. To analyze it, you can call **cat** from the command line as follows:
 
@@ -85,7 +85,6 @@ In this case, **cat** will present the corresponding plot with each execution pe
 
 ![](./examples/acotsp1.gif)
 
-***
 
 In a second example we disabled the instance highlighting (i.e. we removed the `--instances` option). In this case, executions of elite configurations are presented using different markers and colors. We can also enable the identification of configurations by using the argument `--configurations`. By setting `--pconfig 12`, **cat** will produce a plot with the 5% best executions of each iteration identified with the corresponding configuration identifier. The command is
 
