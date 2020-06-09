@@ -75,7 +75,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
 
     plt.title('Evolution of the configuration process')
     plt.xlabel(('candidate evaluations [from %d to %d]' % (data['xaxis'].min(), data['xaxis'].max())) if not overTime else 'cumulative running time [in seconds]')
-    plt.ylabel(('solution quality [relative deviation]' if objective == 'cost' else 'running time'))
+    plt.ylabel(('solution cost [relative deviation]' if objective == 'cost' else 'running time'))
 
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
     data['color'] = data.apply(lambda x: colors[(x['instance'] - 1) % len(colors)] if showInstances else simpleColors[x['type']] if showElites else 'black', axis = 1)
