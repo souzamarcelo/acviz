@@ -244,7 +244,7 @@ if __name__ == "__main__":
     optional.add_argument('--instances', help = 'enables identification of instances (disabled by default)', action = 'store_true')
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
-    optional.add_argument('--output', help = 'defines a name for the output files', metavar = '<name>', type = str)
+    optional.add_argument('--output', help = 'defines a name for the output files (default: export)', metavar = '<name>', type = str, default = 'export')
     args = parser.parse_args()
     if args.version: print(desc); exit()
     if not args.iracelog: print('Invalid arguments!\nPlease input the irace log file using \'--iracelog <file>\'\n'); parser.print_help(); exit()
