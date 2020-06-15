@@ -11,6 +11,7 @@ from rpy2 import robjects
 from math import log
 from math import ceil
 from copy import copy
+from pprint import pprint
 
 desc = '''
 -------------------------------------------------------------------------------
@@ -67,7 +68,7 @@ def __hover(event):
             fig.canvas.draw_idle()
 
 
-def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips):
+def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar):
     global annotations, ax, fig, plotData
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
@@ -103,9 +104,12 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
 
     legendRegular = False; legendRestart = False
     iterationPoints = data.groupby('iteration', as_index = False).agg({'xaxis': 'first'})['xaxis'].tolist()
-    for point, restart in zip(iterationPoints, restarts):
+    indexPoint = 0
+    for point, restart, amountInstances in zip(iterationPoints, restarts, instancesSoFar):        
         color = '#B71C1C' if restart else 'k'
         line = plt.axvline(x = point, color = color, linestyle = '--', linewidth = 1.4)
+        ax.text(iterationPoints[indexPoint + 1] - (ax.get_xlim()[1] / 200) if indexPoint + 1 < len(iterationPoints) else ax.get_xlim()[1] - (ax.get_xlim()[1] / 200), ax.get_ylim()[1] - 0.1, amountInstances, verticalalignment = 'top', horizontalalignment = 'right', color = 'purple', fontsize = 10)
+        indexPoint += 1
         if not restart and not legendRegular:
             legendElements.append(line)
             legendDescriptions.append('iteration')
@@ -116,7 +120,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
             legendRestart = True
     ax.set_xticks(iterationPoints)
     ax.set_yticklabels(['$10^{%d}$' % tick for tick in ax.get_yticks()])
-    
+
     iterations = data['iteration'].unique().tolist()
     avg = [data[data['iteration'] == iteration]['yaxis'].median() for iteration in iterations]
     best = [data[(data['iteration'] == iteration) & ((data['type'] == 'elite') | (data['type'] == 'final') | (data['type'] == 'best'))]['yaxis'].median() for iteration in iterations]
@@ -201,14 +205,24 @@ def __read(iracelog, objective, bkv, overTime):
     
     restarts = [bool(item) for item in np.array(robjects.r('iraceResults$softRestart'))]
     if len(restarts) < len(data['iteration'].unique()): restarts.insert(0, False)
-    return data, restarts, overTime
+    
+    instancesSoFar = []
+    usedInstances = data.groupby('iteration', as_index = False).agg({'instance': 'unique'})
+    for iteration in usedInstances['iteration'].tolist():
+        instancesSoFar.append([])
+        for instanceList in usedInstances[usedInstances['iteration'] <= iteration]['instance'].tolist():
+            instancesSoFar[-1].extend(instanceList)
+        instancesSoFar[-1] = np.unique(instancesSoFar[-1])
+    instancesSoFar = [len(item) for item in instancesSoFar]
+    
+    return data, restarts, instancesSoFar, overTime
 
 
 def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True):
     global plt
     if userPlt is not None: plt = userPlt 
-    data, restarts, overTime = __read(iracelog, objective, bkv, overTime)
-    __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips)
+    data, restarts, instancesSoFar, overTime = __read(iracelog, objective, bkv, overTime)
+    __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar)
     if exportData:
         if not os.path.exists('./export'): os.mkdir('./export')
         file = open('./export/' + output + '.csv', 'w')
@@ -248,7 +262,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.version: print(desc); exit()
     if not args.iracelog: print('Invalid arguments!\nPlease input the irace log file using \'--iracelog <file>\'\n'); parser.print_help(); exit()
-    if args.objective.lower() not in ('cost', 'time'): print('Invalid objective. Use wither COST or TIME.'); parser.print_help(); exit()
+    if args.objective.lower() not in ('cost', 'time'): print('Invalid objective. Use either COST or TIME.'); parser.print_help(); exit()
     
     print(desc)
     settings = '> Settings:\n'
