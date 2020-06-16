@@ -11,7 +11,6 @@ from rpy2 import robjects
 from math import log
 from math import ceil
 from copy import copy
-from pprint import pprint
 
 desc = '''
 -------------------------------------------------------------------------------
@@ -73,6 +72,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
     ax.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
+    plt.yscale('log')
 
     plt.title('Evolution of the configuration process')
     plt.xlabel(('candidate evaluations [from %d to %d]' % (data['xaxis'].min(), data['xaxis'].max())) if not overTime else 'cumulative running time [in seconds]')
@@ -119,7 +119,6 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
             legendDescriptions.append('iteration with restart')
             legendRestart = True
     ax.set_xticks(iterationPoints)
-    ax.set_yticklabels(['$10^{%d}$' % tick for tick in ax.get_yticks()])
 
     iterations = data['iteration'].unique().tolist()
     avg = [data[data['iteration'] == iteration]['yaxis'].median() for iteration in iterations]
@@ -200,8 +199,6 @@ def __read(iracelog, objective, bkv, overTime):
         data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
     
     data['yaxis'] = abs(1 - (data['value'] / data['bkv'])) if objective == 'cost' else data['value']
-    data.loc[data['yaxis'] == 0, 'yaxis'] = data[data['yaxis'] > 0]['yaxis'].min() / 2
-    data['yaxis'] = data['yaxis'].map(log)
     
     restarts = [bool(item) for item in np.array(robjects.r('iraceResults$softRestart'))]
     if len(restarts) < len(data['iteration'].unique()): restarts.insert(0, False)
