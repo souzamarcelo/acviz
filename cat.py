@@ -72,7 +72,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
     ax.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
-    plt.yscale('log')
+    ax.set_yscale('log')
 
     plt.title('Evolution of the configuration process')
     plt.xlabel(('candidate evaluations [from %d to %d]' % (data['xaxis'].min(), data['xaxis'].max())) if not overTime else 'cumulative running time [in seconds]')
@@ -199,6 +199,7 @@ def __read(iracelog, objective, bkv, overTime):
         data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
     
     data['yaxis'] = abs(1 - (data['value'] / data['bkv'])) if objective == 'cost' else data['value']
+    data.loc[data['yaxis'] == 0, 'yaxis'] = data[data['yaxis'] > 0]['yaxis'].min() / 2
     
     restarts = [bool(item) for item in np.array(robjects.r('iraceResults$softRestart'))]
     if len(restarts) < len(data['iteration'].unique()): restarts.insert(0, False)
