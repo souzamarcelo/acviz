@@ -67,7 +67,7 @@ def __hover(event):
             fig.canvas.draw_idle()
 
 
-def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar):
+def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular):
     global annotations, ax, fig, plotData
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
@@ -107,7 +107,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     indexPoint = 0
     for point, restart, amountInstances in zip(iterationPoints, restarts, instancesSoFar):        
         color = '#B71C1C' if restart else 'k'
-        line = plt.axvline(x = point, color = color, linestyle = '--', linewidth = 1.4)
+        line = plt.axvline(x = point, color = color, linestyle = '--', linewidth = 1.5)
         ax.text(iterationPoints[indexPoint + 1] - (ax.get_xlim()[1] / 200) if indexPoint + 1 < len(iterationPoints) else ax.get_xlim()[1] - (ax.get_xlim()[1] / 200), ax.get_ylim()[1] - 0.1, amountInstances, verticalalignment = 'top', horizontalalignment = 'right', color = 'purple', fontsize = 10)
         indexPoint += 1
         if not restart and not legendRegular:
@@ -121,18 +121,17 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     ax.set_xticks(iterationPoints)
 
     iterations = data['iteration'].unique().tolist()
-    avg = [data[data['iteration'] == iteration]['yaxis'].median() for iteration in iterations]
-    best = [data[(data['iteration'] == iteration) & ((data['type'] == 'elite') | (data['type'] == 'final') | (data['type'] == 'best'))]['yaxis'].median() for iteration in iterations]
     iterationPoints.append(data['xaxis'].max())
-
     for i in range(len(iterations)):
-        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [avg[i], avg[i]], linestyle = '-', color = '#FF8C00', linewidth = 1.8)
-        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [best[i], best[i]], linestyle = '-', color = '#800080', linewidth = 1.8)
+        medianRegular = mediansRegular[mediansRegular['iteration'] == iterations[i]]['median'].unique()[0]
+        medianElite = mediansElite[mediansElite['iteration'] == iterations[i]]['median'].unique()[0]
+        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [medianRegular, medianRegular], linestyle = '-', color = '#FF8C00', linewidth = 1.8)
+        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [medianElite, medianElite], linestyle = '-', color = '#800080', linewidth = 1.8)
     legendElements.append(mlines.Line2D([], [], color='#FF8C00', linewidth = 1.8))
     legendDescriptions.append('median iteration')
     legendElements.append(mlines.Line2D([], [], color='#800080', linewidth = 1.8))
     legendDescriptions.append('median elites')
-    
+
     if showConfigurations:
         for iteration in iterations:
             amount = ceil(len(data[data['iteration'] == iteration]) * pconfig / 100)
@@ -213,14 +212,49 @@ def __read(iracelog, objective, bkv, overTime):
         instancesSoFar[-1] = np.unique(instancesSoFar[-1])
     instancesSoFar = [len(item) for item in instancesSoFar]
     
-    return data, restarts, instancesSoFar, overTime
+    medians = data[['iteration', 'instance', 'configuration', 'type', 'yaxis']]
+    iterations = medians['iteration'].unique()
+
+    mediansElite = medians[medians['type'] != 'regular']
+    mediansElite = mediansElite.groupby(['iteration', 'instance', 'configuration'], as_index = False).agg({'yaxis': 'median'})
+    mediansDict = {'iteration': [], 'median': []}
+    for iteration in iterations:
+        elites = mediansElite[mediansElite['iteration'] == iteration]['configuration'].unique()
+        instancesOfIteration = medians[medians['iteration'] == iteration]['instance'].unique()
+        executions = mediansElite[(mediansElite['iteration'] <= iteration) & (mediansElite['configuration'].isin(elites)) & (mediansElite['instance'].isin(instancesOfIteration))]
+        executions = executions.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
+        executions = executions.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
+        mediansDict['iteration'].append(iteration)
+        mediansDict['median'].append(executions['yaxis'].median())
+    mediansElite = pd.DataFrame.from_dict(mediansDict)
+    
+    mediansRegular = medians
+    mediansRegular = mediansRegular.groupby(['iteration', 'instance', 'configuration', 'type'], as_index = False).agg({'yaxis': 'median'})
+    mediansDict = {'iteration': [], 'median': []}
+    for iteration in iterations:
+        nonElites = mediansRegular[(mediansRegular['iteration'] == iteration) & (mediansRegular['type'] == 'regular')]['configuration'].unique()
+        instancesOfIteration = medians[medians['iteration'] == iteration]['instance'].unique()
+        executions = mediansRegular[(mediansRegular['iteration'] <= iteration) & (mediansRegular['configuration'].isin(nonElites)) & (mediansRegular['instance'].isin(instancesOfIteration))]
+        executions = executions.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
+        for conf in nonElites:
+            for instance in instancesOfIteration:
+                if len(executions[(executions['configuration'] == conf) & (executions['instance'] == instance)]) == 0:
+                    elites = medians[(medians['iteration'] == iteration) & (medians['type'] != 'regular')]['configuration'].unique()
+                    eliteExecutions = medians[(medians['configuration'].isin(elites)) & (medians['instance'] == instance) & (medians['iteration'] <= iteration)]
+                    executions.loc[len(executions)] = [conf, instance, eliteExecutions['yaxis'].max()]
+        executions = executions.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
+        mediansDict['iteration'].append(iteration)
+        mediansDict['median'].append(executions['yaxis'].median())
+    mediansRegular = pd.DataFrame.from_dict(mediansDict)
+
+    return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
 
 
 def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True):
     global plt
     if userPlt is not None: plt = userPlt 
-    data, restarts, instancesSoFar, overTime = __read(iracelog, objective, bkv, overTime)
-    __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar)
+    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __read(iracelog, objective, bkv, overTime)
+    __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
     if exportData:
         if not os.path.exists('./export'): os.mkdir('./export')
         file = open('./export/' + output + '.csv', 'w')
