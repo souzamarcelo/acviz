@@ -74,9 +74,8 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     ax.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
     ax.set_yscale('log')
 
-    plt.title('Evolution of the configuration process')
-    plt.xlabel(('candidate evaluations [from %d to %d]' % (data['xaxis'].min(), data['xaxis'].max())) if not overTime else 'cumulative running time [in seconds]')
-    plt.ylabel(('solution cost [relative deviation]' if objective == 'cost' else 'running time'))
+    plt.xlabel('candidate evaluations' if not overTime else 'cumulative running time [in seconds]')
+    plt.ylabel('solution cost [relative deviation]' if objective == 'cost' else 'running time')
 
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
     data['color'] = data.apply(lambda x: colors[(x['instance'] - 1) % len(colors)] if showInstances else simpleColors[x['type']] if showElites else 'black', axis = 1)
@@ -105,10 +104,9 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     legendRegular = False; legendRestart = False
     iterationPoints = data.groupby('iteration', as_index = False).agg({'xaxis': 'first'})['xaxis'].tolist()
     indexPoint = 0
-    for point, restart, amountInstances in zip(iterationPoints, restarts, instancesSoFar):        
+    for point, restart in zip(iterationPoints, restarts):
         color = '#B71C1C' if restart else 'k'
         line = plt.axvline(x = point, color = color, linestyle = '--', linewidth = 1.5)
-        ax.text(iterationPoints[indexPoint + 1] - (ax.get_xlim()[1] / 200) if indexPoint + 1 < len(iterationPoints) else ax.get_xlim()[1] - (ax.get_xlim()[1] / 200), ax.get_ylim()[1] - 0.1, amountInstances, verticalalignment = 'top', horizontalalignment = 'right', color = 'purple', fontsize = 10)
         indexPoint += 1
         if not restart and not legendRegular:
             legendElements.append(line)
@@ -118,7 +116,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
             legendElements.append(line)
             legendDescriptions.append('iteration with restart')
             legendRestart = True
-    ax.set_xticks(iterationPoints)
+    ax.set_xticks(iterationPoints + [ax.get_xlim()[1]])
 
     iterations = data['iteration'].unique().tolist()
     iterationPoints.append(data['xaxis'].max())
@@ -147,8 +145,15 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     ax.tick_params(axis = 'both', which = 'major', labelsize = 9)
     plt.xticks(rotation = 90)
 
+    ax2 = ax.twiny()
+    ax2.set_xticks(iterationPoints[1:] + [ax.get_xlim()[1]])
+    ax2.set_xticklabels(instancesSoFar)
+    ax2.set_xlabel('instances evaluated so far')
+    ax2.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
+    ax2.tick_params(axis = 'both', which = 'major', labelsize = 9)
+
     fig.set_size_inches(10, 6.5)
-    fig.subplots_adjust(top = 0.95)
+    fig.subplots_adjust(top = 0.93)
     fig.subplots_adjust(bottom = 0.21)
     fig.subplots_adjust(right = 0.99)
     fig.subplots_adjust(left = 0.07)
@@ -220,7 +225,7 @@ def __read(iracelog, objective, bkv, overTime):
     mediansDict = {'iteration': [], 'median': []}
     for iteration in iterations:
         elites = mediansElite[mediansElite['iteration'] == iteration]['configuration'].unique()
-        instancesOfIteration = medians[medians['iteration'] == iteration]['instance'].unique()
+        instancesOfIteration = medians[medians['iteration'] <= iteration]['instance'].unique()
         executions = mediansElite[(mediansElite['iteration'] <= iteration) & (mediansElite['configuration'].isin(elites)) & (mediansElite['instance'].isin(instancesOfIteration))]
         executions = executions.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
         executions = executions.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
@@ -233,7 +238,7 @@ def __read(iracelog, objective, bkv, overTime):
     mediansDict = {'iteration': [], 'median': []}
     for iteration in iterations:
         nonElites = mediansRegular[(mediansRegular['iteration'] == iteration) & (mediansRegular['type'] == 'regular')]['configuration'].unique()
-        instancesOfIteration = medians[medians['iteration'] == iteration]['instance'].unique()
+        instancesOfIteration = medians[medians['iteration'] <= iteration]['instance'].unique()
         executions = mediansRegular[(mediansRegular['iteration'] <= iteration) & (mediansRegular['configuration'].isin(nonElites)) & (mediansRegular['instance'].isin(instancesOfIteration))]
         executions = executions.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
         for conf in nonElites:
