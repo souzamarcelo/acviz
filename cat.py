@@ -217,7 +217,7 @@ def __read(iracelog, objective, bkv, overTime):
             instancesSoFar[-1].extend(instanceList)
         instancesSoFar[-1] = np.unique(instancesSoFar[-1])
     instancesSoFar = [len(item) for item in instancesSoFar]
-    
+
     medians = data[['iteration', 'instance', 'configuration', 'type', 'yaxis']]
     iterations = medians['iteration'].unique()
 
@@ -229,11 +229,16 @@ def __read(iracelog, objective, bkv, overTime):
         instancesOfIteration = medians[medians['iteration'] <= iteration]['instance'].unique()
         executions = mediansElite[(mediansElite['iteration'] <= iteration) & (mediansElite['configuration'].isin(elites)) & (mediansElite['instance'].isin(instancesOfIteration))]
         executions = executions.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
+        for conf in elites:
+            for instance in instancesOfIteration:
+                if len(executions[(executions['configuration'] == conf) & (executions['instance'] == instance)]) == 0:
+                    eliteExecutions = medians[(medians['configuration'].isin(elites)) & (medians['instance'] == instance) & (medians['iteration'] <= iteration)]
+                    executions.loc[len(executions)] = [conf, instance, eliteExecutions['yaxis'].max()]
         executions = executions.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
         mediansDict['iteration'].append(iteration)
         mediansDict['median'].append(executions['yaxis'].median())
     mediansElite = pd.DataFrame.from_dict(mediansDict)
-    
+
     mediansRegular = medians
     mediansRegular = mediansRegular.groupby(['iteration', 'instance', 'configuration', 'type'], as_index = False).agg({'yaxis': 'median'})
     mediansDict = {'iteration': [], 'median': []}
