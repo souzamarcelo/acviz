@@ -151,6 +151,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     ax2.set_xlabel('instances evaluated so far')
     ax2.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
     ax2.tick_params(axis = 'both', which = 'major', labelsize = 9)
+    ax.set_zorder(ax2.get_zorder() + 1)
 
     fig.set_size_inches(10, 6.5)
     fig.subplots_adjust(top = 0.93)
