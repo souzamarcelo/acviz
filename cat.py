@@ -229,30 +229,33 @@ def __read(iracelog, objective, bkv, overTime):
         instancesOfIteration = medians[medians['iteration'] <= iteration]['instance'].unique()
         executions = mediansElite[(mediansElite['iteration'] <= iteration) & (mediansElite['configuration'].isin(elites)) & (mediansElite['instance'].isin(instancesOfIteration))]
         executions = executions.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
-        for conf in elites:
-            for instance in instancesOfIteration:
-                if len(executions[(executions['configuration'] == conf) & (executions['instance'] == instance)]) == 0:
-                    eliteExecutions = medians[(medians['configuration'].isin(elites)) & (medians['instance'] == instance) & (medians['iteration'] <= iteration)]
-                    executions.loc[len(executions)] = [conf, instance, eliteExecutions['yaxis'].max()]
+        for instance in instancesOfIteration:
+            execElitesInstance = executions[executions['instance'] == instance]
+            maxElites = executions[executions['instance'] == instance]['yaxis'].max()
+            for conf in elites:
+                if len(execElitesInstance[execElitesInstance['configuration'] == conf]) == 0:
+                    executions.loc[len(executions)] = [conf, instance, maxElites]
         executions = executions.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
         mediansDict['iteration'].append(iteration)
         mediansDict['median'].append(executions['yaxis'].median())
     mediansElite = pd.DataFrame.from_dict(mediansDict)
-
+    
     mediansRegular = medians
     mediansRegular = mediansRegular.groupby(['iteration', 'instance', 'configuration', 'type'], as_index = False).agg({'yaxis': 'median'})
     mediansDict = {'iteration': [], 'median': []}
     for iteration in iterations:
         nonElites = mediansRegular[(mediansRegular['iteration'] == iteration) & (mediansRegular['type'] == 'regular')]['configuration'].unique()
+        elites = medians[(medians['iteration'] == iteration) & (medians['type'] != 'regular')]['configuration'].unique()
         instancesOfIteration = medians[medians['iteration'] <= iteration]['instance'].unique()
         executions = mediansRegular[(mediansRegular['iteration'] <= iteration) & (mediansRegular['configuration'].isin(nonElites)) & (mediansRegular['instance'].isin(instancesOfIteration))]
         executions = executions.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
-        for conf in nonElites:
-            for instance in instancesOfIteration:
-                if len(executions[(executions['configuration'] == conf) & (executions['instance'] == instance)]) == 0:
-                    elites = medians[(medians['iteration'] == iteration) & (medians['type'] != 'regular')]['configuration'].unique()
-                    eliteExecutions = medians[(medians['configuration'].isin(elites)) & (medians['instance'] == instance) & (medians['iteration'] <= iteration)]
-                    executions.loc[len(executions)] = [conf, instance, eliteExecutions['yaxis'].max()]
+        eliteExecutions = medians[(medians['configuration'].isin(elites)) & (medians['iteration'] <= iteration)]
+        for instance in instancesOfIteration:
+            execNonElitesInstance = executions[executions['instance'] == instance]
+            maxElites = eliteExecutions[eliteExecutions['instance'] == instance]['yaxis'].max()
+            for conf in nonElites:
+                if len(execNonElitesInstance[execNonElitesInstance['configuration'] == conf]) == 0:
+                    executions.loc[len(executions)] = [conf, instance, maxElites]
         executions = executions.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
         mediansDict['iteration'].append(iteration)
         mediansDict['median'].append(executions['yaxis'].median())
