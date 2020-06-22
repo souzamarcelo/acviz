@@ -160,7 +160,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     if showToolTips: fig.canvas.mpl_connect('motion_notify_event', __hover)
 
 
-def __read(iracelog, objective, bkv, overTime):
+def __read(iracelog, objective, bkv, overTime, imputation):
     robjects.r['load'](iracelog)
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
@@ -232,14 +232,15 @@ def __read(iracelog, objective, bkv, overTime):
         for instanceSeed in instancesOfIteration:
             execElitesInstance = execElite[execElite['instanceseed'] == instanceSeed]
             execNonElitesInstance = execNonElite[execNonElite['instanceseed'] == instanceSeed]
-            maxElites = data[(data['configuration'].isin(elites)) & (data['instanceseed'] == instanceSeed) & (data['iteration'] <= iteration)]['yaxis'].max()
-            if not math.isnan(maxElites):
+            if imputation == 'elite': imputationValue = data[(data['configuration'].isin(elites)) & (data['instanceseed'] == instanceSeed) & (data['iteration'] <= iteration)]['yaxis'].max()
+            elif imputation == 'alive': imputationValue = data[((data['configuration'].isin(elites)) | (data['configuration'].isin(nonElites))) & (data['instanceseed'] == instanceSeed) & (data['iteration'] <= iteration)]['yaxis'].max()
+            if not math.isnan(imputationValue):
                 for conf in elites:
                     if len(execElitesInstance[execElitesInstance['configuration'] == conf]) == 0:
-                        execElite.loc[len(execElite)] = [conf, instanceSeed, maxElites]
+                        execElite.loc[len(execElite)] = [conf, instanceSeed, imputationValue]
                 for conf in nonElites:
                     if len(execNonElitesInstance[execNonElitesInstance['configuration'] == conf]) == 0:
-                        execNonElite.loc[len(execNonElite)] = [conf, instanceSeed, maxElites]
+                        execNonElite.loc[len(execNonElite)] = [conf, instanceSeed, imputationValue]
         execElite = execElite.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
         execNonElite = execNonElite.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
         mediansEliteDict['iteration'].append(iteration)
@@ -252,10 +253,10 @@ def __read(iracelog, objective, bkv, overTime):
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
 
 
-def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True):
+def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite'):
     global plt
     if userPlt is not None: plt = userPlt 
-    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __read(iracelog, objective, bkv, overTime)
+    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __read(iracelog, objective, bkv, overTime, imputation)
     __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
     if exportData:
         if not os.path.exists('./export'): os.mkdir('./export')
@@ -290,6 +291,7 @@ if __name__ == "__main__":
     optional.add_argument('--configurations', help = 'enables identification of configurations (disabled by default)', action = 'store_true')
     optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 10)', metavar = '<p>', default = 10, type = int)
     optional.add_argument('--instances', help = 'enables identification of instances (disabled by default)', action = 'store_true')
+    optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imputation>', type = str, default = 'elite')
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
     optional.add_argument('--output', help = 'defines a name for the output files (default: export)', metavar = '<name>', type = str, default = 'export')
@@ -302,6 +304,7 @@ if __name__ == "__main__":
     settings = '> Settings:\n'
     settings += '  - plot evolution of the configuration process\n'
     settings += '  - irace log file: ' + args.iracelog + '\n'
+    settings += '  - imputation strategy: ' + args.imputation + '\n'
     if args.bkv is not None: settings += '  - bkv file: ' + str(args.bkv) + '\n'
     if args.elites: settings += '  - show elite configurations\n'
     if args.instances: settings += '  - identify instances\n'
@@ -327,6 +330,7 @@ if __name__ == "__main__":
         bkv = args.bkv,
         overTime = args.overtime,
         userPlt = None,
-        showToolTips = True
+        showToolTips = True,
+        imputation = args.imputation
     )
     print('-------------------------------------------------------------------------------')
