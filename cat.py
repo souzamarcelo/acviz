@@ -218,49 +218,40 @@ def __read(iracelog, objective, bkv, overTime):
         instancesSoFar[-1] = np.unique(instancesSoFar[-1])
     instancesSoFar = [len(item) for item in instancesSoFar]
 
-    medians = data[['iteration', 'instance', 'configuration', 'type', 'yaxis']]
-    iterations = medians['iteration'].unique()
+    iterations = data['iteration'].unique()
+    dataElite = data[data['type'] != 'regular'][['iteration', 'instance', 'configuration', 'type', 'yaxis']]
+    dataAll = data[['iteration', 'instance', 'configuration', 'type', 'yaxis']]
+    mediansEliteDict = {'iteration': [], 'median': []}
+    mediansRegularDict = {'iteration': [], 'median': []}
 
-    mediansElite = medians[medians['type'] != 'regular']
-    mediansElite = mediansElite.groupby(['iteration', 'instance', 'configuration'], as_index = False).agg({'yaxis': 'median'})
-    mediansDict = {'iteration': [], 'median': []}
     for iteration in iterations:
-        elites = mediansElite[mediansElite['iteration'] == iteration]['configuration'].unique()
-        instancesOfIteration = medians[medians['iteration'] <= iteration]['instance'].unique()
-        executions = mediansElite[(mediansElite['iteration'] <= iteration) & (mediansElite['configuration'].isin(elites)) & (mediansElite['instance'].isin(instancesOfIteration))]
-        executions = executions.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
+        elites = dataElite[dataElite['iteration'] == iteration]['configuration'].unique()
+        nonElites = dataAll[(dataAll['iteration'] == iteration) & (dataAll['type'] == 'regular')]['configuration'].unique()
+        instancesOfIteration = dataAll[dataAll['iteration'] <= iteration]['instance'].unique()
+        execElite = dataElite[(dataElite['iteration'] <= iteration) & (dataElite['configuration'].isin(elites)) & (dataElite['instance'].isin(instancesOfIteration))]
+        execNonElite = dataAll[(dataAll['iteration'] <= iteration) & (dataAll['configuration'].isin(nonElites)) & (dataAll['instance'].isin(instancesOfIteration))]
+        execElite = execElite.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
+        execNonElite = execNonElite.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
         for instance in instancesOfIteration:
-            execElitesInstance = executions[executions['instance'] == instance]
-            maxElites = executions[executions['instance'] == instance]['yaxis'].max()
-            for conf in elites:
-                if len(execElitesInstance[execElitesInstance['configuration'] == conf]) == 0:
-                    executions.loc[len(executions)] = [conf, instance, maxElites]
-        executions = executions.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
-        mediansDict['iteration'].append(iteration)
-        mediansDict['median'].append(executions['yaxis'].median())
-    mediansElite = pd.DataFrame.from_dict(mediansDict)
+            execElitesInstance = execElite[execElite['instance'] == instance]
+            execNonElitesInstance = execNonElite[execNonElite['instance'] == instance]
+            maxElites = dataAll[(dataAll['configuration'].isin(elites)) & (dataAll['instance'] == instance) & (dataAll['iteration'] <= iteration)]['yaxis'].max()
+            if not math.isnan(maxElites):
+                for conf in elites:
+                    if len(execElitesInstance[execElitesInstance['configuration'] == conf]) == 0:
+                        execElite.loc[len(execElite)] = [conf, instance, maxElites]
+                for conf in nonElites:
+                    if len(execNonElitesInstance[execNonElitesInstance['configuration'] == conf]) == 0:
+                        execNonElite.loc[len(execNonElite)] = [conf, instance, maxElites]
+        execElite = execElite.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
+        execNonElite = execNonElite.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
+        mediansEliteDict['iteration'].append(iteration)
+        mediansEliteDict['median'].append(execElite['yaxis'].median())
+        mediansRegularDict['iteration'].append(iteration)
+        mediansRegularDict['median'].append(execNonElite['yaxis'].median())
+    mediansElite = pd.DataFrame.from_dict(mediansEliteDict)
+    mediansRegular = pd.DataFrame.from_dict(mediansRegularDict)
     
-    mediansRegular = medians
-    mediansRegular = mediansRegular.groupby(['iteration', 'instance', 'configuration', 'type'], as_index = False).agg({'yaxis': 'median'})
-    mediansDict = {'iteration': [], 'median': []}
-    for iteration in iterations:
-        nonElites = mediansRegular[(mediansRegular['iteration'] == iteration) & (mediansRegular['type'] == 'regular')]['configuration'].unique()
-        elites = medians[(medians['iteration'] == iteration) & (medians['type'] != 'regular')]['configuration'].unique()
-        instancesOfIteration = medians[medians['iteration'] <= iteration]['instance'].unique()
-        executions = mediansRegular[(mediansRegular['iteration'] <= iteration) & (mediansRegular['configuration'].isin(nonElites)) & (mediansRegular['instance'].isin(instancesOfIteration))]
-        executions = executions.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
-        eliteExecutions = medians[(medians['configuration'].isin(elites)) & (medians['iteration'] <= iteration)]
-        for instance in instancesOfIteration:
-            execNonElitesInstance = executions[executions['instance'] == instance]
-            maxElites = eliteExecutions[eliteExecutions['instance'] == instance]['yaxis'].max()
-            for conf in nonElites:
-                if len(execNonElitesInstance[execNonElitesInstance['configuration'] == conf]) == 0:
-                    executions.loc[len(executions)] = [conf, instance, maxElites]
-        executions = executions.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
-        mediansDict['iteration'].append(iteration)
-        mediansDict['median'].append(executions['yaxis'].median())
-    mediansRegular = pd.DataFrame.from_dict(mediansDict)
-
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
 
 
