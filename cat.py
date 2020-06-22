@@ -42,9 +42,8 @@ def __updateAnnotations(ind, pathCollection, data):
     annotations.xy = pathCollection.get_offsets()[index]
     exec = data['id'].unique()[0]
     config = data['configuration'].unique()[0]
-    instance = data['instance'].unique()[0]
     instancename = data['instancename'].unique()[0]
-    annotations.set_text('execution: %d\ninstance: %d (%s)\nconfiguration: %d' % (exec, instance, instancename, config))
+    annotations.set_text('execution: %d\ninstance: %s\nconfiguration: %d' % (exec, instancename, config))
     annotations.get_bbox_patch().set_facecolor(data['color'].unique()[0])
     annotations.get_bbox_patch().set_alpha(0.6)
 
@@ -78,7 +77,7 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     plt.ylabel('solution cost [relative deviation]' if objective == 'cost' else 'running time')
 
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
-    data['color'] = data.apply(lambda x: colors[(x['instance'] - 1) % len(colors)] if showInstances else simpleColors[x['type']] if showElites else 'black', axis = 1)
+    data['color'] = data.apply(lambda x: colors[(x['instanceseed'] - 1) % len(colors)] if showInstances else simpleColors[x['type']] if showElites else 'black', axis = 1)
 
     legendElements = []; legendDescriptions = []; plotData = []
     if showElites:
@@ -191,6 +190,7 @@ def __read(iracelog, objective, bkv, overTime):
     data = pd.DataFrame(experiments)
     data['xaxis'] = data['startTime'] if overTime and not math.isnan(cumulativeTime) else data['id']
     if overTime and math.isnan(cumulativeTime): print('  - You are trying to plot over time, but the irace log file does not have running time data; setting overtime to false!'); overTime = False
+    data['instanceseed'] = data['instance']
     data['instance'] = data['instance'].map(lambda x: iraceInstances[x - 1])
     data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1:iraceInstanceNames[x - 1].rindex('.')])
 
@@ -210,39 +210,36 @@ def __read(iracelog, objective, bkv, overTime):
     if len(restarts) < len(data['iteration'].unique()): restarts.insert(0, False)
     
     instancesSoFar = []
-    usedInstances = data.groupby('iteration', as_index = False).agg({'instance': 'unique'})
+    usedInstances = data.groupby('iteration', as_index = False).agg({'instanceseed': 'unique'})
     for iteration in usedInstances['iteration'].tolist():
         instancesSoFar.append([])
-        for instanceList in usedInstances[usedInstances['iteration'] <= iteration]['instance'].tolist():
+        for instanceList in usedInstances[usedInstances['iteration'] <= iteration]['instanceseed'].tolist():
             instancesSoFar[-1].extend(instanceList)
         instancesSoFar[-1] = np.unique(instancesSoFar[-1])
     instancesSoFar = [len(item) for item in instancesSoFar]
 
-    iterations = data['iteration'].unique()
-    dataElite = data[data['type'] != 'regular'][['iteration', 'instance', 'configuration', 'type', 'yaxis']]
-    dataAll = data[['iteration', 'instance', 'configuration', 'type', 'yaxis']]
     mediansEliteDict = {'iteration': [], 'median': []}
     mediansRegularDict = {'iteration': [], 'median': []}
-
+    iterations = data['iteration'].unique()
     for iteration in iterations:
-        elites = dataElite[dataElite['iteration'] == iteration]['configuration'].unique()
-        nonElites = dataAll[(dataAll['iteration'] == iteration) & (dataAll['type'] == 'regular')]['configuration'].unique()
-        instancesOfIteration = dataAll[dataAll['iteration'] <= iteration]['instance'].unique()
-        execElite = dataElite[(dataElite['iteration'] <= iteration) & (dataElite['configuration'].isin(elites)) & (dataElite['instance'].isin(instancesOfIteration))]
-        execNonElite = dataAll[(dataAll['iteration'] <= iteration) & (dataAll['configuration'].isin(nonElites)) & (dataAll['instance'].isin(instancesOfIteration))]
-        execElite = execElite.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
-        execNonElite = execNonElite.groupby(['configuration', 'instance'], as_index = False).agg({'yaxis': 'median'})
-        for instance in instancesOfIteration:
-            execElitesInstance = execElite[execElite['instance'] == instance]
-            execNonElitesInstance = execNonElite[execNonElite['instance'] == instance]
-            maxElites = dataAll[(dataAll['configuration'].isin(elites)) & (dataAll['instance'] == instance) & (dataAll['iteration'] <= iteration)]['yaxis'].max()
+        elites = data[(data['iteration'] == iteration) & (data['type'] != 'regular')]['configuration'].unique()
+        nonElites = data[(data['iteration'] == iteration) & (data['type'] == 'regular')]['configuration'].unique()
+        instancesOfIteration = data[data['iteration'] <= iteration]['instanceseed'].unique()
+        execElite = data[(data['iteration'] <= iteration) & (data['configuration'].isin(elites)) & (data['instanceseed'].isin(instancesOfIteration))]
+        execElite = execElite.groupby(['configuration', 'instanceseed'], as_index = False).agg({'yaxis': 'median'})
+        execNonElite = data[(data['iteration'] <= iteration) & (data['configuration'].isin(nonElites)) & (data['instanceseed'].isin(instancesOfIteration))]
+        execNonElite = execNonElite.groupby(['configuration', 'instanceseed'], as_index = False).agg({'yaxis': 'median'})
+        for instanceSeed in instancesOfIteration:
+            execElitesInstance = execElite[execElite['instanceseed'] == instanceSeed]
+            execNonElitesInstance = execNonElite[execNonElite['instanceseed'] == instanceSeed]
+            maxElites = data[(data['configuration'].isin(elites)) & (data['instanceseed'] == instanceSeed) & (data['iteration'] <= iteration)]['yaxis'].max()
             if not math.isnan(maxElites):
                 for conf in elites:
                     if len(execElitesInstance[execElitesInstance['configuration'] == conf]) == 0:
-                        execElite.loc[len(execElite)] = [conf, instance, maxElites]
+                        execElite.loc[len(execElite)] = [conf, instanceSeed, maxElites]
                 for conf in nonElites:
                     if len(execNonElitesInstance[execNonElitesInstance['configuration'] == conf]) == 0:
-                        execNonElite.loc[len(execNonElite)] = [conf, instance, maxElites]
+                        execNonElite.loc[len(execNonElite)] = [conf, instanceSeed, maxElites]
         execElite = execElite.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
         execNonElite = execNonElite.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
         mediansEliteDict['iteration'].append(iteration)
