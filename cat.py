@@ -160,12 +160,61 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
     if showToolTips: fig.canvas.mpl_connect('motion_notify_event', __hover)
 
 
+def __plotTest(testData):
+    results = []
+    instances = testData['instancename'].unique()    
+    configurations = testData['configuration'].unique()
+    for i in range(len(instances)):
+        results.append([])
+        for j in range(len(configurations)):
+            results[i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == configurations[j])]['rank'].median())
+    eliteIterations = []
+    eliteIterationsData = testData.groupby('configuration', as_index = False).agg({'iterationelite': 'first'})
+    for config in configurations:
+        eliteIterations.append(eliteIterationsData[eliteIterationsData['configuration'] == config]['iterationelite'].unique()[0])
+    
+    fig = plt.figure('Plot testing data [cat]')
+    ax = fig.add_subplot(1, 1, 1, label = 'plot_test')
+    im = ax.imshow(results, cmap = 'RdYlGn_r')
+    
+    cbar = ax.figure.colorbar(im, ax = ax)
+    cbar.ax.set_ylabel('rank', rotation = -90, va = 'bottom')
+
+    ax.set_xticks(np.arange(len(configurations)))
+    ax.set_yticks(np.arange(len(instances)))
+    ax.set_xticklabels([str(configurations[i]) + ' (' + str(eliteIterations[i]) + ')' for i in range(len(configurations))])
+    ax.set_yticklabels(instances)
+    ax.set_xticks(np.arange(len(results[1]) + 1) - .5, minor = True)
+    ax.set_yticks(np.arange(len(results) + 1) - .5, minor = True)
+    ax.tick_params(top = False, bottom = True, labeltop = False, labelbottom = True, left = True, right = False, labelleft = True, labelright = False)
+    ax.grid(which = 'minor', color = 'w', linestyle = '-', linewidth = 3)
+    ax.tick_params(which = 'minor', bottom = False, left = False)
+    plt.setp(ax.get_xticklabels(), rotation = 90, va = 'center', ha = 'right', rotation_mode = 'anchor')
+    ax.set_xlabel('elite configurations (corresponding iterations)')
+    ax.set_ylabel('train (gray) and test (blue) instances')
+    [label.set_color('#5D6D7E' if 'train' in label.get_text() else '#0000FF') for label in plt.gca().get_yticklabels()]
+
+    texts = []
+    for i in range(len(results)):
+        for j in range(len(results[0])):
+            kw = dict(horizontalalignment = 'center', verticalalignment = 'center')
+            text = im.axes.text(j, i, int(results[i][j]), **kw)
+            texts.append(text)
+    
+    fig.tight_layout()
+
+
 def __read(iracelog, objective, bkv, overTime, imputation):
     robjects.r['load'](iracelog)
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
     iraceInstances = np.array(robjects.r('iraceResults$state$.irace$instancesList'))[0]
     iraceInstanceNames = np.array(robjects.r('iraceResults$scenario$instances'))
+    testInstanceIds = list(np.array(robjects.r('names(iraceResults$scenario$testInstances)')))
+    testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.')] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
+    testInstances = np.array(robjects.r('rownames(iraceResults$testing$experiments)'))
+    testConfigurations = np.array(robjects.r('colnames(iraceResults$testing$experiments)'))
+    testResults = np.array(robjects.r('iraceResults$testing$experiments'))
 
     elites = []
     for i in range(1, int(robjects.r('iraceResults$state$indexIteration')[0])):
@@ -222,23 +271,23 @@ def __read(iracelog, objective, bkv, overTime, imputation):
     mediansRegularDict = {'iteration': [], 'median': []}
     iterations = data['iteration'].unique()
     for iteration in iterations:
-        elites = data[(data['iteration'] == iteration) & (data['type'] != 'regular')]['configuration'].unique()
-        nonElites = data[(data['iteration'] == iteration) & (data['type'] == 'regular')]['configuration'].unique()
+        eliteConfs = data[(data['iteration'] == iteration) & (data['type'] != 'regular')]['configuration'].unique()
+        nonEliteConfs = data[(data['iteration'] == iteration) & (data['type'] == 'regular')]['configuration'].unique()
         instancesOfIteration = data[data['iteration'] <= iteration]['instanceseed'].unique()
-        execElite = data[(data['iteration'] <= iteration) & (data['configuration'].isin(elites)) & (data['instanceseed'].isin(instancesOfIteration))]
+        execElite = data[(data['iteration'] <= iteration) & (data['configuration'].isin(eliteConfs)) & (data['instanceseed'].isin(instancesOfIteration))]
         execElite = execElite.groupby(['configuration', 'instanceseed'], as_index = False).agg({'yaxis': 'median'})
-        execNonElite = data[(data['iteration'] <= iteration) & (data['configuration'].isin(nonElites)) & (data['instanceseed'].isin(instancesOfIteration))]
+        execNonElite = data[(data['iteration'] <= iteration) & (data['configuration'].isin(nonEliteConfs)) & (data['instanceseed'].isin(instancesOfIteration))]
         execNonElite = execNonElite.groupby(['configuration', 'instanceseed'], as_index = False).agg({'yaxis': 'median'})
         for instanceSeed in instancesOfIteration:
             execElitesInstance = execElite[execElite['instanceseed'] == instanceSeed]
             execNonElitesInstance = execNonElite[execNonElite['instanceseed'] == instanceSeed]
-            if imputation == 'elite': imputationValue = data[(data['configuration'].isin(elites)) & (data['instanceseed'] == instanceSeed) & (data['iteration'] <= iteration)]['yaxis'].max()
-            elif imputation == 'alive': imputationValue = data[((data['configuration'].isin(elites)) | (data['configuration'].isin(nonElites))) & (data['instanceseed'] == instanceSeed) & (data['iteration'] <= iteration)]['yaxis'].max()
+            if imputation == 'elite': imputationValue = data[(data['configuration'].isin(eliteConfs)) & (data['instanceseed'] == instanceSeed) & (data['iteration'] <= iteration)]['yaxis'].max()
+            elif imputation == 'alive': imputationValue = data[((data['configuration'].isin(eliteConfs)) | (data['configuration'].isin(nonEliteConfs))) & (data['instanceseed'] == instanceSeed) & (data['iteration'] <= iteration)]['yaxis'].max()
             if not math.isnan(imputationValue):
-                for conf in elites:
+                for conf in eliteConfs:
                     if len(execElitesInstance[execElitesInstance['configuration'] == conf]) == 0:
                         execElite.loc[len(execElite)] = [conf, instanceSeed, imputationValue]
-                for conf in nonElites:
+                for conf in nonEliteConfs:
                     if len(execNonElitesInstance[execNonElitesInstance['configuration'] == conf]) == 0:
                         execNonElite.loc[len(execNonElite)] = [conf, instanceSeed, imputationValue]
         execElite = execElite.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
@@ -249,15 +298,43 @@ def __read(iracelog, objective, bkv, overTime, imputation):
         mediansRegularDict['median'].append(execNonElite['yaxis'].median())
     mediansElite = pd.DataFrame.from_dict(mediansEliteDict)
     mediansRegular = pd.DataFrame.from_dict(mediansRegularDict)
+
+    trainInstanceNames = data['instancename'].unique()
+    testData = {'configuration': [], 'instanceid': [], 'instancename': [], 'result': []}
+    for i in range(len(testInstances)):
+        for j in range(len(testConfigurations)):
+            testData['instanceid'].append(testInstances[i])
+            testData['instancename'].append(testInstanceNames[testInstanceIds.index(testInstances[i])])
+            testData['configuration'].append(int(testConfigurations[j]))
+            testData['result'].append(testResults[i][j])
+    testData = pd.DataFrame.from_dict(testData)
+    testData = testData.groupby(['configuration', 'instancename'], as_index = False).agg({'result': 'median'})
+    testData['instancetype'] = testData['instancename'].map(lambda x: 'train' if x in trainInstanceNames else 'test')
+    testData['iterationelite'] = -1
+    configs = [int(config) for config in testConfigurations]
+    for config in configs:
+        iteration = ''
+        for i in range(len(elites)):
+            #if config in elites[i]:
+            if config == elites[i][0]:
+                iteration += str(i + 1) + ';'
+        iteration = iteration[:-1]
+        testData.loc[testData['configuration'] == config, 'iterationelite'] = iteration
     
-    return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
+    testData['rank'] = 'NA'
+    instanceNames = testData['instancename'].unique()
+    for instanceName in instanceNames:
+        testData.loc[testData['instancename'] == instanceName, 'rank'] = testData[testData['instancename'] == instanceName]['result'].rank(method = 'min')
 
+    return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData
+  
 
-def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite'):
+def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False):
     global plt
     if userPlt is not None: plt = userPlt 
-    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __read(iracelog, objective, bkv, overTime, imputation)
-    __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
+    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData = __read(iracelog, objective, bkv, overTime, imputation)
+    if testing: __plotTest(testData)
+    else: __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
     if exportData:
         if not os.path.exists('./export'): os.mkdir('./export')
         file = open('./export/' + output + '.csv', 'w')
@@ -271,10 +348,8 @@ def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = Fa
         print('> Plot exported to export/' + output + '.pdf')
         print('> Plot exported to export/' + output + '.png')
     else:
-        if showPlot:
-            plt.show()
-        else:
-            return plt
+        if showPlot: plt.show()
+        else: return plt
 
 
 if __name__ == "__main__":
@@ -292,6 +367,7 @@ if __name__ == "__main__":
     optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 10)', metavar = '<p>', default = 10, type = int)
     optional.add_argument('--instances', help = 'enables identification of instances (disabled by default)', action = 'store_true')
     optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imputation>', type = str, default = 'elite')
+    optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
     optional.add_argument('--output', help = 'defines a name for the output files (default: export)', metavar = '<name>', type = str, default = 'export')
@@ -311,6 +387,7 @@ if __name__ == "__main__":
     if args.configurations: settings += '  - show configurations of the best performers\n'
     if args.configurations: settings += '  - pconfig = %d\n' % args.pconfig
     if args.overtime: settings += '  - plotting over time\n'
+    if args.testing: settings += '  - plotting test data\n'
     if args.exportdata: settings += '  - export data to csv\n'
     if args.exportplot: settings += '  - export plot to pdf and png\n'
     if args.exportdata or args.exportplot: settings += '  - output file name: %s\n' % args.output
@@ -331,6 +408,7 @@ if __name__ == "__main__":
         overTime = args.overtime,
         userPlt = None,
         showToolTips = True,
-        imputation = args.imputation
+        imputation = args.imputation,
+        testing = args.testing
     )
     print('-------------------------------------------------------------------------------')
