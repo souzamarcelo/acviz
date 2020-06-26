@@ -204,17 +204,12 @@ def __plotTest(testData):
     fig.tight_layout()
 
 
-def __read(iracelog, objective, bkv, overTime, imputation):
+def __read(iracelog, objective, bkv, overTime, imputation, testing):
     robjects.r['load'](iracelog)
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
     iraceInstances = np.array(robjects.r('iraceResults$state$.irace$instancesList'))[0]
     iraceInstanceNames = np.array(robjects.r('iraceResults$scenario$instances'))
-    testInstanceIds = list(np.array(robjects.r('names(iraceResults$scenario$testInstances)')))
-    testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.')] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
-    testInstances = np.array(robjects.r('rownames(iraceResults$testing$experiments)'))
-    testConfigurations = np.array(robjects.r('colnames(iraceResults$testing$experiments)'))
-    testResults = np.array(robjects.r('iraceResults$testing$experiments'))
 
     elites = []
     for i in range(1, int(robjects.r('iraceResults$state$indexIteration')[0])):
@@ -299,32 +294,40 @@ def __read(iracelog, objective, bkv, overTime, imputation):
     mediansElite = pd.DataFrame.from_dict(mediansEliteDict)
     mediansRegular = pd.DataFrame.from_dict(mediansRegularDict)
 
-    trainInstanceNames = data['instancename'].unique()
-    testData = {'configuration': [], 'instanceid': [], 'instancename': [], 'result': []}
-    for i in range(len(testInstances)):
-        for j in range(len(testConfigurations)):
-            testData['instanceid'].append(testInstances[i])
-            testData['instancename'].append(testInstanceNames[testInstanceIds.index(testInstances[i])])
-            testData['configuration'].append(int(testConfigurations[j]))
-            testData['result'].append(testResults[i][j])
-    testData = pd.DataFrame.from_dict(testData)
-    testData = testData.groupby(['configuration', 'instancename'], as_index = False).agg({'result': 'median'})
-    testData['instancetype'] = testData['instancename'].map(lambda x: 'train' if x in trainInstanceNames else 'test')
-    testData['iterationelite'] = -1
-    configs = [int(config) for config in testConfigurations]
-    for config in configs:
-        iteration = ''
-        for i in range(len(elites)):
-            #if config in elites[i]:
-            if config == elites[i][0]:
-                iteration += str(i + 1) + ';'
-        iteration = iteration[:-1]
-        testData.loc[testData['configuration'] == config, 'iterationelite'] = iteration
-    
-    testData['rank'] = 'NA'
-    instanceNames = testData['instancename'].unique()
-    for instanceName in instanceNames:
-        testData.loc[testData['instancename'] == instanceName, 'rank'] = testData[testData['instancename'] == instanceName]['result'].rank(method = 'min')
+    testData = None
+    if testing:
+        testInstanceIds = list(np.array(robjects.r('names(iraceResults$scenario$testInstances)')))
+        testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.')] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
+        testInstances = np.array(robjects.r('rownames(iraceResults$testing$experiments)'))
+        testConfigurations = np.array(robjects.r('colnames(iraceResults$testing$experiments)'))
+        testResults = np.array(robjects.r('iraceResults$testing$experiments'))
+        
+        trainInstanceNames = data['instancename'].unique()
+        testData = {'configuration': [], 'instanceid': [], 'instancename': [], 'result': []}
+        for i in range(len(testInstances)):
+            for j in range(len(testConfigurations)):
+                testData['instanceid'].append(testInstances[i])
+                testData['instancename'].append(testInstanceNames[testInstanceIds.index(testInstances[i])])
+                testData['configuration'].append(int(testConfigurations[j]))
+                testData['result'].append(testResults[i][j])
+        testData = pd.DataFrame.from_dict(testData)
+        testData = testData.groupby(['configuration', 'instancename'], as_index = False).agg({'result': 'median'})
+        testData['instancetype'] = testData['instancename'].map(lambda x: 'train' if x in trainInstanceNames else 'test')
+        testData['iterationelite'] = -1
+        configs = [int(config) for config in testConfigurations]
+        for config in configs:
+            iteration = ''
+            for i in range(len(elites)):
+                #if config in elites[i]:
+                if config == elites[i][0]:
+                    iteration += str(i + 1) + ';'
+            iteration = iteration[:-1]
+            testData.loc[testData['configuration'] == config, 'iterationelite'] = iteration
+        
+        testData['rank'] = 'NA'
+        instanceNames = testData['instancename'].unique()
+        for instanceName in instanceNames:
+            testData.loc[testData['instancename'] == instanceName, 'rank'] = testData[testData['instancename'] == instanceName]['result'].rank(method = 'min')
 
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData
   
@@ -332,7 +335,7 @@ def __read(iracelog, objective, bkv, overTime, imputation):
 def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False):
     global plt
     if userPlt is not None: plt = userPlt 
-    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData = __read(iracelog, objective, bkv, overTime, imputation)
+    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData = __read(iracelog, objective, bkv, overTime, imputation, testing)
     if testing: __plotTest(testData)
     else: __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
     if exportData:
