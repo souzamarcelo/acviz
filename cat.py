@@ -161,50 +161,67 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
 
 
 def __plotTest(testData):
-    results = []
-    instances = testData['instancename'].unique()    
-    configurations = testData['configuration'].unique()
+    testData = testData[(testData['elite'] | testData['finalelite'])]
+    #ins = ['2000-222','2000-30','2000-535','2000-834','2000-526','2000-23','2000-432','2000-924','2000-340','2000-531','2000-937','2000-337','2000-736','2000-130','2000-434']
+    ins = ['2000-222','2000-30','2000-535','2000-834','2000-526','2000-23','2000-736','2000-130','2000-434']
+    testData = testData[testData['instancename'].isin(ins)]
+    instances = testData['instancename'].unique()
+    trainInstances = testData[testData['instancetype'] == 'train']['instancename'].unique()
+    
+    elitesData = testData[testData['elite']][['configuration', 'instancename', 'relatediterations', 'rank', 'yaxis']]
+    finalData = testData[testData['finalelite']][['configuration', 'instancename', 'finaleliteorder', 'rank', 'yaxis']]
+    for instanceName in instances:
+        elitesData.loc[elitesData['instancename'] == instanceName, 'rank'] = elitesData[elitesData['instancename'] == instanceName]['yaxis'].rank(method = 'min')
+        finalData.loc[finalData['instancename'] == instanceName, 'rank'] = finalData[finalData['instancename'] == instanceName]['yaxis'].rank(method = 'min')
+
+    dataPlot = [[], [], [], []]
+    eliteConf = elitesData['configuration'].unique()
+    finalConf = finalData['configuration'].unique()
     for i in range(len(instances)):
-        results.append([])
-        for j in range(len(configurations)):
-            results[i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == configurations[j])]['rank'].median())
-    eliteIterations = []
-    eliteIterationsData = testData.groupby('configuration', as_index = False).agg({'iterationelite': 'first'})
-    for config in configurations:
-        eliteIterations.append(eliteIterationsData[eliteIterationsData['configuration'] == config]['iterationelite'].unique()[0])
-    
+        dataPlot[0].append([])
+        dataPlot[1].append([])
+        dataPlot[2].append([])
+        dataPlot[3].append([])
+        for j in range(len(eliteConf)):
+            dataPlot[0][i].append(elitesData[(elitesData['instancename'] == instances[i]) & (elitesData['configuration'] == eliteConf[j])]['yaxis'].median())
+            dataPlot[1][i].append(elitesData[(elitesData['instancename'] == instances[i]) & (elitesData['configuration'] == eliteConf[j])]['rank'].median())
+        for j in range(len(finalConf)):
+            dataPlot[2][i].append(finalData[(finalData['instancename'] == instances[i]) & (finalData['configuration'] == finalConf[j])]['yaxis'].median())
+            dataPlot[3][i].append(finalData[(finalData['instancename'] == instances[i]) & (finalData['configuration'] == finalConf[j])]['rank'].median())
+    titles = ['First elites of each iteration\n[mean results]', 'First elites of each iteration\n[ranks by instance]', 'Elites of last iteration\n[mean results]', 'Elites of last iteration\n[ranks by instance]']
+
     fig = plt.figure('Plot testing data [cat]')
-    ax = fig.add_subplot(1, 1, 1, label = 'plot_test')
-    im = ax.imshow(results, cmap = 'RdYlGn_r')
-    
-    cbar = ax.figure.colorbar(im, ax = ax)
-    cbar.ax.set_ylabel('rank', rotation = -90, va = 'bottom')
+    for index in range(0, 4):
+        configList = list(eliteConf) if index <= 1 else list(finalConf)
+        configList.sort(key = lambda x: elitesData[elitesData['configuration'] == x]['relatediterations'].unique()[0] if index <= 1 else finalData[finalData['configuration'] == x]['finaleliteorder'].unique()[0], reverse = index >= 2)
+        ax = fig.add_subplot(1, 4, index + 1, label = 'plot_test')
+        im = ax.imshow(dataPlot[index], cmap = 'RdYlGn_r', aspect = 'auto')
+        ax.set_title(titles[index], fontsize = 12)
+        ax.tick_params(axis = 'both', which = 'both', labelsize = 8)
+        ax.tick_params(top = False, bottom = True, labeltop = False, labelbottom = True, left = True, right = False, labelleft = True, labelright = False)
+        ax.set_xticks(np.arange(len(dataPlot[index][1]) + 1) - .5, minor = True)
+        ax.set_yticks(np.arange(len(dataPlot[index]) + 1) - .5, minor = True)
+        ax.set_xticks(np.arange(len(configList)))
+        if index <= 1: ax.set_xticklabels([str(config) + ' [' + elitesData[elitesData['configuration'] == config]['relatediterations'].unique()[0] + ']' for config in configList])
+        else: ax.set_xticklabels([str(config) + ' [' + str(finalData[finalData['configuration'] == config]['finaleliteorder'].unique()[0]) + ']' for config in configList])
+        if index == 0: ax.set_yticklabels(instances); ax.set_yticks(np.arange(len(instances)))
+        else: ax.set_yticks([])
+        ax.grid(which = 'minor', color = 'w', linestyle = '-', linewidth = 2)
+        ax.tick_params(which = 'minor', bottom = False, left = False)
+        plt.setp(ax.get_xticklabels(), rotation = 90, va = 'center', ha = 'right', rotation_mode = 'anchor')
+        [label.set_color('#5D6D7E' if label.get_text() in trainInstances else '#0000FF') for label in plt.gca().get_yticklabels()]
+        texts = []
+        for i in range(len(dataPlot[index])):
+            for j in range(len(dataPlot[index][0])):
+                kw = dict(horizontalalignment = 'center', verticalalignment = 'center', fontsize = 8)
+                text = im.axes.text(j, i, round(dataPlot[index][i][j], 3) if index in [0, 2] else int(dataPlot[index][i][j]), **kw)
+                texts.append(text)
 
-    ax.set_xticks(np.arange(len(configurations)))
-    ax.set_yticks(np.arange(len(instances)))
-    ax.set_xticklabels([str(configurations[i]) + ' (' + str(eliteIterations[i]) + ')' for i in range(len(configurations))])
-    ax.set_yticklabels(instances)
-    ax.set_xticks(np.arange(len(results[1]) + 1) - .5, minor = True)
-    ax.set_yticks(np.arange(len(results) + 1) - .5, minor = True)
-    ax.tick_params(top = False, bottom = True, labeltop = False, labelbottom = True, left = True, right = False, labelleft = True, labelright = False)
-    ax.grid(which = 'minor', color = 'w', linestyle = '-', linewidth = 3)
-    ax.tick_params(which = 'minor', bottom = False, left = False)
-    plt.setp(ax.get_xticklabels(), rotation = 90, va = 'center', ha = 'right', rotation_mode = 'anchor')
-    ax.set_xlabel('elite configurations (corresponding iterations)')
-    ax.set_ylabel('train (gray) and test (blue) instances')
-    [label.set_color('#5D6D7E' if 'train' in label.get_text() else '#0000FF') for label in plt.gca().get_yticklabels()]
-
-    texts = []
-    for i in range(len(results)):
-        for j in range(len(results[0])):
-            kw = dict(horizontalalignment = 'center', verticalalignment = 'center')
-            text = im.axes.text(j, i, int(results[i][j]), **kw)
-            texts.append(text)
-    
+    fig.set_size_inches(12, 7)
     fig.tight_layout()
 
 
-def __read(iracelog, objective, bkv, overTime, imputation, testing):
+def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
     robjects.r['load'](iracelog)
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
@@ -239,8 +256,8 @@ def __read(iracelog, objective, bkv, overTime, imputation, testing):
     data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1:iraceInstanceNames[x - 1].rindex('.')])
 
     data['bkv'] = float('inf')
-    if bkv is not None:
-        bkv = pd.read_csv(bkv, sep = ':', header = None, names = ['instancename', 'bkv'])
+    if bkvFile is not None:
+        bkv = pd.read_csv(bkvFile, sep = ':', header = None, names = ['instancename', 'bkv'])
         bkv['bkv'] = pd.to_numeric(bkv['bkv'], errors = 'raise')
         data['bkv'] = data['instancename'].map(lambda x: bkv[bkv['instancename'] == x]['bkv'].min())
 
@@ -313,21 +330,36 @@ def __read(iracelog, objective, bkv, overTime, imputation, testing):
         testData = pd.DataFrame.from_dict(testData)
         testData = testData.groupby(['configuration', 'instancename'], as_index = False).agg({'result': 'median'})
         testData['instancetype'] = testData['instancename'].map(lambda x: 'train' if x in trainInstanceNames else 'test')
-        testData['iterationelite'] = -1
+        testData['relatediterations'] = ''
+        testData['elite'] = False
+        testData['finalelite'] = False
+        testData['finaleliteorder'] = ''
         configs = [int(config) for config in testConfigurations]
         for config in configs:
             iteration = ''
             for i in range(len(elites)):
-                #if config in elites[i]:
                 if config == elites[i][0]:
                     iteration += str(i + 1) + ';'
             iteration = iteration[:-1]
-            testData.loc[testData['configuration'] == config, 'iterationelite'] = iteration
-        
+            if config in elites[len(elites) - 1]:
+                testData.loc[testData['configuration'] == config, 'finalelite'] = True
+                testData.loc[testData['configuration'] == config, 'finaleliteorder'] = elites[len(elites) - 1].index(config) + 1
+            if iteration != '':
+                testData.loc[testData['configuration'] == config, 'elite'] = True
+                testData.loc[testData['configuration'] == config, 'relatediterations'] = iteration
         testData['rank'] = 'NA'
         instanceNames = testData['instancename'].unique()
         for instanceName in instanceNames:
             testData.loc[testData['instancename'] == instanceName, 'rank'] = testData[testData['instancename'] == instanceName]['result'].rank(method = 'min')
+
+        testData['bkv'] = float('inf')
+        if bkvFile is not None:
+            bkv = pd.read_csv(bkvFile, sep = ':', header = None, names = ['instancename', 'bkv'])
+            bkv['bkv'] = pd.to_numeric(bkv['bkv'], errors = 'raise')
+            testData['bkv'] = testData['instancename'].map(lambda x: bkv[bkv['instancename'] == x]['bkv'].min())
+        for instance in testData['instancename'].unique().tolist():
+            testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
+        testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv'])) if objective == 'cost' else data['result']
 
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData
   
