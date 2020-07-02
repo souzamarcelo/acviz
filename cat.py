@@ -162,13 +162,11 @@ def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigur
 
 def __plotTest(testData):
     testData = testData[(testData['elite'] | testData['finalelite'])]
-    #ins = ['2000-222','2000-30','2000-535','2000-834','2000-526','2000-23','2000-432','2000-924','2000-340','2000-531','2000-937','2000-337','2000-736','2000-130','2000-434']
-    ins = ['2000-222','2000-30','2000-535','2000-834','2000-526','2000-23','2000-736','2000-130','2000-434']
-    testData = testData[testData['instancename'].isin(ins)]
-    instances = testData['instancename'].unique()
-    trainInstances = testData[testData['instancetype'] == 'train']['instancename'].unique()
-    
+    trainInstances = list(testData[testData['instancetype'] == 'train']['instancename'].unique())
+    instances = list(testData[testData['instancetype'] == 'test']['instancename'].unique()) + trainInstances
+    testData = testData.sort_values(by = 'relatediterations')
     elitesData = testData[testData['elite']][['configuration', 'instancename', 'relatediterations', 'rank', 'yaxis']]
+    testData = testData.sort_values(by = 'finaleliteorder', na_position = 'first', ascending = False)
     finalData = testData[testData['finalelite']][['configuration', 'instancename', 'finaleliteorder', 'rank', 'yaxis']]
     for instanceName in instances:
         elitesData.loc[elitesData['instancename'] == instanceName, 'rank'] = elitesData[elitesData['instancename'] == instanceName]['yaxis'].rank(method = 'min')
@@ -193,17 +191,16 @@ def __plotTest(testData):
     fig = plt.figure('Plot testing data [cat]')
     for index in range(0, 4):
         configList = list(eliteConf) if index <= 1 else list(finalConf)
-        configList.sort(key = lambda x: elitesData[elitesData['configuration'] == x]['relatediterations'].unique()[0] if index <= 1 else finalData[finalData['configuration'] == x]['finaleliteorder'].unique()[0], reverse = index >= 2)
         ax = fig.add_subplot(1, 4, index + 1, label = 'plot_test')
         im = ax.imshow(dataPlot[index], cmap = 'RdYlGn_r', aspect = 'auto')
-        ax.set_title(titles[index], fontsize = 12)
+        ax.set_title(titles[index], fontsize = 10)
         ax.tick_params(axis = 'both', which = 'both', labelsize = 8)
         ax.tick_params(top = False, bottom = True, labeltop = False, labelbottom = True, left = True, right = False, labelleft = True, labelright = False)
         ax.set_xticks(np.arange(len(dataPlot[index][1]) + 1) - .5, minor = True)
         ax.set_yticks(np.arange(len(dataPlot[index]) + 1) - .5, minor = True)
         ax.set_xticks(np.arange(len(configList)))
         if index <= 1: ax.set_xticklabels([str(config) + ' [' + elitesData[elitesData['configuration'] == config]['relatediterations'].unique()[0] + ']' for config in configList])
-        else: ax.set_xticklabels([str(config) + ' [' + str(finalData[finalData['configuration'] == config]['finaleliteorder'].unique()[0]) + ']' for config in configList])
+        else: ax.set_xticklabels([str(config) + ' [' + str(int(finalData[finalData['configuration'] == config]['finaleliteorder'].unique()[0])) + ']' for config in configList])
         if index == 0: ax.set_yticklabels(instances); ax.set_yticks(np.arange(len(instances)))
         else: ax.set_yticks([])
         ax.grid(which = 'minor', color = 'w', linestyle = '-', linewidth = 2)
@@ -333,7 +330,7 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
         testData['relatediterations'] = ''
         testData['elite'] = False
         testData['finalelite'] = False
-        testData['finaleliteorder'] = ''
+        testData['finaleliteorder'] = math.nan
         configs = [int(config) for config in testConfigurations]
         for config in configs:
             iteration = ''
