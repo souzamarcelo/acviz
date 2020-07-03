@@ -250,7 +250,7 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
     if overTime and math.isnan(cumulativeTime): print('  - You are trying to plot over time, but the irace log file does not have running time data; setting overtime to false!'); overTime = False
     data['instanceseed'] = data['instance']
     data['instance'] = data['instance'].map(lambda x: iraceInstances[x - 1])
-    data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1:iraceInstanceNames[x - 1].rindex('.')])
+    data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1:iraceInstanceNames[x - 1].rindex('.') if '.' in iraceInstanceNames[x - 1] else len(iraceInstanceNames[x - 1])])
 
     data['bkv'] = float('inf')
     if bkvFile is not None:
