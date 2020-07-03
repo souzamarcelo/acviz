@@ -201,12 +201,14 @@ def __plotTest(testData):
         ax.set_xticks(np.arange(len(configList)))
         if index <= 1: ax.set_xticklabels([str(config) + ' [' + elitesData[elitesData['configuration'] == config]['relatediterations'].unique()[0] + ']' for config in configList])
         else: ax.set_xticklabels([str(config) + ' [' + str(int(finalData[finalData['configuration'] == config]['finaleliteorder'].unique()[0])) + ']' for config in configList])
-        if index == 0: ax.set_yticklabels(instances); ax.set_yticks(np.arange(len(instances)))
-        else: ax.set_yticks([])
         ax.grid(which = 'minor', color = 'w', linestyle = '-', linewidth = 2)
         ax.tick_params(which = 'minor', bottom = False, left = False)
         plt.setp(ax.get_xticklabels(), rotation = 90, va = 'center', ha = 'right', rotation_mode = 'anchor')
+        ax.set_yticks(np.arange(len(instances)))
+        ax.set_yticklabels(instances)
         [label.set_color('#5D6D7E' if label.get_text() in trainInstances else '#0000FF') for label in plt.gca().get_yticklabels()]
+        if index > 0: ax.set_yticks([])
+        
         texts = []
         for i in range(len(dataPlot[index])):
             for j in range(len(dataPlot[index][0])):
