@@ -313,7 +313,7 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
     testData = None
     if testing:
         testInstanceIds = list(np.array(robjects.r('names(iraceResults$scenario$testInstances)')))
-        testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.')] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
+        testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.') if '.' in instance else len(instance)] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
         testInstances = np.array(robjects.r('rownames(iraceResults$testing$experiments)'))
         testConfigurations = np.array(robjects.r('colnames(iraceResults$testing$experiments)'))
         testResults = np.array(robjects.r('iraceResults$testing$experiments'))
@@ -359,6 +359,7 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
         for instance in testData['instancename'].unique().tolist():
             testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
         testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv'])) if objective == 'cost' else data['result']
+        #testData['yaxis'] = abs(testData['result'] - testData['bkv']) if objective == 'cost' else data['result']
 
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData
   
