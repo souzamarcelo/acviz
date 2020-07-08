@@ -17,8 +17,10 @@ desc = '''
 | cat: Configuration Analysis Tools (CAT) for irace                           |
 | Version: 1.0                                                                |
 | Copyright (C) 2020                                                          |
-| Marcelo de Souza     <marcelo.desouza@udesc.br>                             |
-| Marcus Ritt          <marcus.ritt@inf.ufrgs.br>                             |
+| Marcelo de Souza         <marcelo.desouza@udesc.br>                         |
+| Marcus Ritt              <marcus.ritt@inf.ufrgs.br>                         |
+| Manuel Lopez-Ibanez      <manuel.lopez-ibanez@manchester.ac.uk >            |
+| Leslie Perez Caceres     <leslie.perez@pucv.cl>                             |
 |                                                                             |
 | This is free software, and you are welcome to redistribute it under certain |
 | conditions.  See the GNU General Public License for details. There is NO    |
