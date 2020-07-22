@@ -267,7 +267,7 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
     
     data['yaxis'] = abs(1 - (data['value'] / data['bkv'])) if objective == 'cost' else data['value']
     data.loc[data['yaxis'] == 0, 'yaxis'] = data[data['yaxis'] > 0]['yaxis'].min() / 2
-    
+
     restarts = [bool(item) for item in np.array(robjects.r('iraceResults$softRestart'))]
     if len(restarts) < len(data['iteration'].unique()): restarts.insert(0, False)
     
@@ -360,8 +360,7 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
             testData['bkv'] = testData['instancename'].map(lambda x: bkv[bkv['instancename'] == x]['bkv'].min())
         for instance in testData['instancename'].unique().tolist():
             testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
-        testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv'])) if objective == 'cost' else data['result']
-        #testData['yaxis'] = abs(testData['result'] - testData['bkv']) if objective == 'cost' else data['result']
+        testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv'])) if objective == 'cost' else testData['result']
 
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData
   
