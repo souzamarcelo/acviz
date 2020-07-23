@@ -215,7 +215,8 @@ def __plotTest(testData):
         for i in range(len(dataPlot[index])):
             for j in range(len(dataPlot[index][0])):
                 kw = dict(horizontalalignment = 'center', verticalalignment = 'center', fontsize = 8)
-                text = im.axes.text(j, i, round(dataPlot[index][i][j], 3) if index in [0, 2] else int(dataPlot[index][i][j]), **kw)
+                if not math.isnan(dataPlot[index][i][j]):
+                    text = im.axes.text(j, i, round(dataPlot[index][i][j], 3) if index in [0, 2] else int(dataPlot[index][i][j]), **kw)
                 texts.append(text)
 
     fig.set_size_inches(12, 7)
@@ -360,8 +361,11 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
             testData['bkv'] = testData['instancename'].map(lambda x: bkv[bkv['instancename'] == x]['bkv'].min())
         for instance in testData['instancename'].unique().tolist():
             testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
-        testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv'])) if objective == 'cost' else testData['result']
-
+        if objective == 'time':
+            testData['result'] = testData['result'].map(lambda x: max(x, 0.001))
+            testData['bkv'] = testData['bkv'].map(lambda x: max(x, 0.001))
+        testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
+        
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData
   
 
