@@ -68,7 +68,7 @@ def __hover(event):
             fig.canvas.draw_idle()
 
 
-def __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular):
+def __plotTraining(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular):
     global annotations, ax, fig, plotData
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
@@ -223,7 +223,70 @@ def __plotTest(testData):
     fig.tight_layout()
 
 
-def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
+def __readTest(iracelog, objective, bkvFile):
+    robjects.r['load'](iracelog)
+    testInstanceIds = list(np.array(robjects.r('names(iraceResults$scenario$testInstances)')))
+    testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.') if '.' in instance else len(instance)] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
+    testInstances = np.array(robjects.r('rownames(iraceResults$testing$experiments)'))
+    testConfigurations = np.array(robjects.r('colnames(iraceResults$testing$experiments)'))
+    testResults = np.array(robjects.r('iraceResults$testing$experiments'))
+    trainInstanceNames = [x[x.rindex('/') + 1:x.rindex('.') if '.' in x else len(x)] for x in list(set(np.array(robjects.r('iraceResults$scenario$instances'))))]
+    elites = []
+    for i in range(1, int(robjects.r('iraceResults$state$indexIteration')[0])):
+        elites.append([int(item) for item in str(robjects.r('iraceResults$allElites[[' + str(i) + ']]')).replace('[1]', '').strip().split()])
+
+    testData = {'configuration': [], 'instanceid': [], 'instancename': [], 'result': []}
+    for i in range(len(testInstances)):
+        for j in range(len(testConfigurations)):
+            testData['instanceid'].append(testInstances[i])
+            testData['instancename'].append(testInstanceNames[testInstanceIds.index(testInstances[i])])
+            testData['configuration'].append(int(testConfigurations[j]))
+            testData['result'].append(testResults[i][j])
+    testData = pd.DataFrame.from_dict(testData)
+    testData = testData.groupby(['configuration', 'instancename'], as_index = False).agg({'result': 'median'})
+    testData['instancetype'] = testData['instancename'].map(lambda x: 'train' if x in trainInstanceNames else 'test')
+    testData['relatediterations'] = ''
+    testData['elite'] = False
+    testData['eliteorder'] = math.nan
+    testData['finalelite'] = False
+    testData['finaleliteorder'] = math.nan
+    configs = [int(config) for config in testConfigurations]
+    for config in configs:
+        iteration = ''
+        maxIteration = 0
+        for i in range(len(elites)):
+            if config == elites[i][0]:
+                iteration += str(i + 1) + ';'
+                maxIteration = max(maxIteration, i + 1)
+        iteration = iteration[:-1]
+        if config in elites[len(elites) - 1]:
+            testData.loc[testData['configuration'] == config, 'finalelite'] = True
+            testData.loc[testData['configuration'] == config, 'finaleliteorder'] = elites[len(elites) - 1].index(config) + 1
+        if iteration != '':
+            testData.loc[testData['configuration'] == config, 'elite'] = True
+            testData.loc[testData['configuration'] == config, 'eliteorder'] = maxIteration
+            testData.loc[testData['configuration'] == config, 'relatediterations'] = iteration
+    testData['rank'] = 'NA'
+    instanceNames = testData['instancename'].unique()
+    for instanceName in instanceNames:
+        testData.loc[testData['instancename'] == instanceName, 'rank'] = testData[testData['instancename'] == instanceName]['result'].rank(method = 'min')
+
+    testData['bkv'] = float('inf')
+    if bkvFile is not None:
+        bkv = pd.read_csv(bkvFile, sep = ':', header = None, names = ['instancename', 'bkv'])
+        bkv['bkv'] = pd.to_numeric(bkv['bkv'], errors = 'raise')
+        testData['bkv'] = testData['instancename'].map(lambda x: bkv[bkv['instancename'] == x]['bkv'].min())
+    for instance in testData['instancename'].unique().tolist():
+        testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
+    if objective == 'time':
+        testData['result'] = testData['result'].map(lambda x: max(x, 0.00001))
+        testData['bkv'] = testData['bkv'].map(lambda x: max(x, 0.000001))
+    testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
+    
+    return testData
+
+
+def __readTraining(iracelog, objective, bkvFile, overTime, imputation):
     robjects.r['load'](iracelog)
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
@@ -246,9 +309,9 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
         experiment['configuration'] = int(iraceExpLog[i][2])
         experiment['value'] = iraceExp[experiment['instance'] - 1][experiment['configuration'] - 1]
         experiment['type'] = ('best' if experiment['configuration'] == elites[-1][0] else
-                              'final' if experiment['configuration'] in elites[-1] else
-                              'elite' if experiment['configuration'] in elites[experiment['iteration'] - 1] else
-                              'regular')
+                            'final' if experiment['configuration'] in elites[-1] else
+                            'elite' if experiment['configuration'] in elites[experiment['iteration'] - 1] else
+                            'regular')
         experiments.append(experiment)
     data = pd.DataFrame(experiments)
     data['xaxis'] = data['startTime'] if overTime and not math.isnan(cumulativeTime) else data['id']
@@ -313,78 +376,26 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
     mediansElite = pd.DataFrame.from_dict(mediansEliteDict)
     mediansRegular = pd.DataFrame.from_dict(mediansRegularDict)
 
-    testData = None
-    if testing:
-        testInstanceIds = list(np.array(robjects.r('names(iraceResults$scenario$testInstances)')))
-        testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.') if '.' in instance else len(instance)] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
-        testInstances = np.array(robjects.r('rownames(iraceResults$testing$experiments)'))
-        testConfigurations = np.array(robjects.r('colnames(iraceResults$testing$experiments)'))
-        testResults = np.array(robjects.r('iraceResults$testing$experiments'))
-        
-        trainInstanceNames = data['instancename'].unique()
-        testData = {'configuration': [], 'instanceid': [], 'instancename': [], 'result': []}
-        for i in range(len(testInstances)):
-            for j in range(len(testConfigurations)):
-                testData['instanceid'].append(testInstances[i])
-                testData['instancename'].append(testInstanceNames[testInstanceIds.index(testInstances[i])])
-                testData['configuration'].append(int(testConfigurations[j]))
-                testData['result'].append(testResults[i][j])
-        testData = pd.DataFrame.from_dict(testData)
-        testData = testData.groupby(['configuration', 'instancename'], as_index = False).agg({'result': 'median'})
-        testData['instancetype'] = testData['instancename'].map(lambda x: 'train' if x in trainInstanceNames else 'test')
-        testData['relatediterations'] = ''
-        testData['elite'] = False
-        testData['eliteorder'] = math.nan
-        testData['finalelite'] = False
-        testData['finaleliteorder'] = math.nan
-        configs = [int(config) for config in testConfigurations]
-        for config in configs:
-            iteration = ''
-            maxIteration = 0
-            for i in range(len(elites)):
-                if config == elites[i][0]:
-                    iteration += str(i + 1) + ';'
-                    maxIteration = max(maxIteration, i + 1)
-            iteration = iteration[:-1]
-            if config in elites[len(elites) - 1]:
-                testData.loc[testData['configuration'] == config, 'finalelite'] = True
-                testData.loc[testData['configuration'] == config, 'finaleliteorder'] = elites[len(elites) - 1].index(config) + 1
-            if iteration != '':
-                testData.loc[testData['configuration'] == config, 'elite'] = True
-                testData.loc[testData['configuration'] == config, 'eliteorder'] = maxIteration
-                testData.loc[testData['configuration'] == config, 'relatediterations'] = iteration
-        testData['rank'] = 'NA'
-        instanceNames = testData['instancename'].unique()
-        for instanceName in instanceNames:
-            testData.loc[testData['instancename'] == instanceName, 'rank'] = testData[testData['instancename'] == instanceName]['result'].rank(method = 'min')
-
-        testData['bkv'] = float('inf')
-        if bkvFile is not None:
-            bkv = pd.read_csv(bkvFile, sep = ':', header = None, names = ['instancename', 'bkv'])
-            bkv['bkv'] = pd.to_numeric(bkv['bkv'], errors = 'raise')
-            testData['bkv'] = testData['instancename'].map(lambda x: bkv[bkv['instancename'] == x]['bkv'].min())
-        for instance in testData['instancename'].unique().tolist():
-            testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
-        if objective == 'time':
-            testData['result'] = testData['result'].map(lambda x: max(x, 0.00001))
-            testData['bkv'] = testData['bkv'].map(lambda x: max(x, 0.000001))
-        testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
-        
-    return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData
+    return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
   
 
 def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False):
     global plt
     if userPlt is not None: plt = userPlt 
-    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData = __read(iracelog, objective, bkv, overTime, imputation, testing)
-    if testing: __plotTest(testData)
-    else: __plotEvo(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
+    if testing:
+        testData = __readTest(iracelog, objective, bkv)
+        __plotTest(testData)
+    else:
+        data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, objective, bkv, overTime, imputation)
+        __plotTraining(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
     if exportData:
-        if not os.path.exists('./export'): os.mkdir('./export')
-        file = open('./export/' + output + '.csv', 'w')
-        file.write(data.to_csv())
-        file.close()
-        print('> data exported to export/' + output + '.csv')
+        if not testing:
+            if not os.path.exists('./export'): os.mkdir('./export')
+            file = open('./export/' + output + '.csv', 'w')
+            file.write(data.to_csv())
+            file.close()
+            print('> data exported to export/' + output + '.csv')
+        print('> cat only exports training data (remove --testing option)')
     if exportPlot:
         if not os.path.exists('./export'): os.mkdir('./export')
         plt.savefig('./export/' + output + '.pdf', format = 'pdf')
