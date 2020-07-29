@@ -188,7 +188,7 @@ def __plotTest(testData):
         for j in range(len(finalConf)):
             dataPlot[2][i].append(finalData[(finalData['instancename'] == instances[i]) & (finalData['configuration'] == finalConf[j])]['yaxis'].median())
             dataPlot[3][i].append(finalData[(finalData['instancename'] == instances[i]) & (finalData['configuration'] == finalConf[j])]['rank'].median())
-    titles = ['First elites of each iteration\n[mean results]', 'First elites of each iteration\n[ranks by instance]', 'Elites of last iteration\n[mean results]', 'Elites of last iteration\n[ranks by instance]']
+    titles = ['First elites of each iteration\n[mean relative deviations]', 'First elites of each iteration\n[ranks by instance]', 'Elites of last iteration\n[mean relative deviations]', 'Elites of last iteration\n[ranks by instance]']
 
     fig = plt.figure('Plot testing data [cat]')
     for index in range(0, 4):
