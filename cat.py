@@ -166,7 +166,7 @@ def __plotTest(testData):
     testData = testData[(testData['elite'] | testData['finalelite'])]
     trainInstances = list(testData[testData['instancetype'] == 'train']['instancename'].unique())
     instances = list(testData[testData['instancetype'] == 'test']['instancename'].unique()) + trainInstances
-    testData = testData.sort_values(by = 'relatediterations')
+    testData = testData.sort_values(by = 'eliteorder')
     elitesData = testData[testData['elite']][['configuration', 'instancename', 'relatediterations', 'rank', 'yaxis']]
     testData = testData.sort_values(by = 'finaleliteorder', na_position = 'first', ascending = False)
     finalData = testData[testData['finalelite']][['configuration', 'instancename', 'finaleliteorder', 'rank', 'yaxis']]
@@ -334,20 +334,24 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
         testData['instancetype'] = testData['instancename'].map(lambda x: 'train' if x in trainInstanceNames else 'test')
         testData['relatediterations'] = ''
         testData['elite'] = False
+        testData['eliteorder'] = math.nan
         testData['finalelite'] = False
         testData['finaleliteorder'] = math.nan
         configs = [int(config) for config in testConfigurations]
         for config in configs:
             iteration = ''
+            maxIteration = 0
             for i in range(len(elites)):
                 if config == elites[i][0]:
                     iteration += str(i + 1) + ';'
+                    maxIteration = max(maxIteration, i + 1)
             iteration = iteration[:-1]
             if config in elites[len(elites) - 1]:
                 testData.loc[testData['configuration'] == config, 'finalelite'] = True
                 testData.loc[testData['configuration'] == config, 'finaleliteorder'] = elites[len(elites) - 1].index(config) + 1
             if iteration != '':
                 testData.loc[testData['configuration'] == config, 'elite'] = True
+                testData.loc[testData['configuration'] == config, 'eliteorder'] = maxIteration
                 testData.loc[testData['configuration'] == config, 'relatediterations'] = iteration
         testData['rank'] = 'NA'
         instanceNames = testData['instancename'].unique()
