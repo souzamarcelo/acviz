@@ -19,7 +19,7 @@ desc = '''
 | Copyright (C) 2020                                                          |
 | Marcelo de Souza         <marcelo.desouza@udesc.br>                         |
 | Marcus Ritt              <marcus.ritt@inf.ufrgs.br>                         |
-| Manuel Lopez-Ibanez      <manuel.lopez-ibanez@manchester.ac.uk >            |
+| Manuel Lopez-Ibanez      <manuel.lopez-ibanez@manchester.ac.uk>             |
 | Leslie Perez Caceres     <leslie.perez@pucv.cl>                             |
 |                                                                             |
 | This is free software, and you are welcome to redistribute it under certain |
@@ -362,8 +362,8 @@ def __read(iracelog, objective, bkvFile, overTime, imputation, testing):
         for instance in testData['instancename'].unique().tolist():
             testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
         if objective == 'time':
-            testData['result'] = testData['result'].map(lambda x: max(x, 0.001))
-            testData['bkv'] = testData['bkv'].map(lambda x: max(x, 0.001))
+            testData['result'] = testData['result'].map(lambda x: max(x, 0.00001))
+            testData['bkv'] = testData['bkv'].map(lambda x: max(x, 0.000001))
         testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
         
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite, testData
@@ -402,10 +402,10 @@ if __name__ == "__main__":
     optional.add_argument('--objective', help = 'performance measure used by irace [cost or time] (default: cost)', metavar = '<obj>', default = 'cost', type = str)
     optional.add_argument('--overtime', help = 'plot the execution over the accumulated configuration time (disabled by default)', action = 'store_true')
     optional.add_argument('--bkv', help = 'file containing best known values for the instances used (null by default)', metavar = '<file>')
-    optional.add_argument('--elites', help = 'enables identification of elite configurations (disabled by default)', action = 'store_true')
+    optional.add_argument('--noelites', help = 'enables identification of elite configurations (disabled by default)', action = 'store_false')
     optional.add_argument('--configurations', help = 'enables identification of configurations (disabled by default)', action = 'store_true')
     optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 10)', metavar = '<p>', default = 10, type = int)
-    optional.add_argument('--instances', help = 'enables identification of instances (disabled by default)', action = 'store_true')
+    optional.add_argument('--noinstances', help = 'enables identification of instances (disabled by default)', action = 'store_false')
     optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imputation>', type = str, default = 'elite')
     optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
@@ -422,8 +422,8 @@ if __name__ == "__main__":
     settings += '  - irace log file: ' + args.iracelog + '\n'
     settings += '  - imputation strategy: ' + args.imputation + '\n'
     if args.bkv is not None: settings += '  - bkv file: ' + str(args.bkv) + '\n'
-    if args.elites: settings += '  - show elite configurations\n'
-    if args.instances: settings += '  - identify instances\n'
+    if args.noelites: settings += '  - show elite configurations\n'
+    if args.noinstances: settings += '  - identify instances\n'
     if args.configurations: settings += '  - show configurations of the best performers\n'
     if args.configurations: settings += '  - pconfig = %d\n' % args.pconfig
     if args.overtime: settings += '  - plotting over time\n'
@@ -436,8 +436,8 @@ if __name__ == "__main__":
     getPlot(
         iracelog = args.iracelog,
         objective = args.objective,
-        showElites = args.elites,
-        showInstances = args.instances,
+        showElites = args.noelites,
+        showInstances = args.noinstances,
         showConfigurations = args.configurations,
         pconfig = args.pconfig,
         showPlot = True,
