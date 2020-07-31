@@ -216,7 +216,7 @@ def __plotTest(testData):
             for j in range(len(dataPlot[index][0])):
                 kw = dict(horizontalalignment = 'center', verticalalignment = 'center', fontsize = 8)
                 if not math.isnan(dataPlot[index][i][j]):
-                    text = im.axes.text(j, i, round(dataPlot[index][i][j], 3) if index in [0, 2] else int(dataPlot[index][i][j]), **kw)
+                    text = im.axes.text(j, i, '{:.3f}'.format(dataPlot[index][i][j]) if index in [0, 2] else int(dataPlot[index][i][j]), **kw)                    
                 texts.append(text)
 
     fig.set_size_inches(12, 7)
@@ -333,7 +333,6 @@ def __readTraining(iracelog, objective, bkvFile, overTime, imputation):
         data['value'] = data['value'].map(lambda x: max(x, 0.000001))
         data['bkv'] = data['bkv'].map(lambda x: max(x, 0.000001))
 
-    #data['yaxis'] = abs(1 - (data['value'] / data['bkv'])) if objective == 'cost' else data['value']
     data['yaxis'] = abs(1 - (data['value'] / data['bkv']))
     data.loc[data['yaxis'] == 0, 'yaxis'] = data[data['yaxis'] > 0]['yaxis'].min() / 2
 
