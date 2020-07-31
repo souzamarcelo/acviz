@@ -76,7 +76,7 @@ def __plotTraining(data, restarts, objective, showElites, showInstances, showCon
     ax.set_yscale('log')
 
     plt.xlabel('candidate evaluations' if not overTime else 'cumulative running time [in seconds]')
-    plt.ylabel('solution cost [relative deviation]' if objective == 'cost' else 'running time')
+    plt.ylabel('solution cost [relative deviation]' if objective == 'cost' else 'running time [relative deviation]')
 
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
     data['color'] = data.apply(lambda x: colors[(x['instanceseed'] - 1) % len(colors)] if showInstances else simpleColors[x['type']] if showElites else 'black', axis = 1)
@@ -279,7 +279,7 @@ def __readTest(iracelog, objective, bkvFile):
     for instance in testData['instancename'].unique().tolist():
         testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
     if objective == 'time':
-        testData['result'] = testData['result'].map(lambda x: max(x, 0.00001))
+        testData['result'] = testData['result'].map(lambda x: max(x, 0.000001))
         testData['bkv'] = testData['bkv'].map(lambda x: max(x, 0.000001))
     testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
     
@@ -329,7 +329,12 @@ def __readTraining(iracelog, objective, bkvFile, overTime, imputation):
     for instance in data['instance'].unique().tolist():
         data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
     
-    data['yaxis'] = abs(1 - (data['value'] / data['bkv'])) if objective == 'cost' else data['value']
+    if objective == 'time':
+        data['value'] = data['value'].map(lambda x: max(x, 0.000001))
+        data['bkv'] = data['bkv'].map(lambda x: max(x, 0.000001))
+
+    #data['yaxis'] = abs(1 - (data['value'] / data['bkv'])) if objective == 'cost' else data['value']
+    data['yaxis'] = abs(1 - (data['value'] / data['bkv']))
     data.loc[data['yaxis'] == 0, 'yaxis'] = data[data['yaxis'] > 0]['yaxis'].min() / 2
 
     restarts = [bool(item) for item in np.array(robjects.r('iraceResults$softRestart'))]
