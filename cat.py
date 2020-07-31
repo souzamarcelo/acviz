@@ -115,7 +115,7 @@ def __plotTraining(data, restarts, objective, showElites, showInstances, showCon
             legendRegular = True
         if restart and not legendRestart:
             legendElements.append(line)
-            legendDescriptions.append('iteration with restart')
+            legendDescriptions.append('iteration (restart)')
             legendRestart = True
     ax.set_xticks(iterationPoints + [ax.get_xlim()[1]])
 
@@ -142,7 +142,7 @@ def __plotTraining(data, restarts, objective, showElites, showInstances, showCon
             for i in range(len(x)):
                 ax.annotate(names[i], xy = (x[i], y[i]), xytext = (0, -8), textcoords = 'offset pixels', horizontalalignment = 'center', verticalalignment = 'center', fontsize = 6)
 
-    fig.legend(legendElements, legendDescriptions, loc = 'center', bbox_to_anchor = (0.5, 0.06), ncol = 4, handletextpad = 0.5, columnspacing = 1.8)
+    fig.legend(legendElements, legendDescriptions, loc = 'center', bbox_to_anchor = (0.5, 0.075), ncol = 4, handletextpad = 0.5, columnspacing = 1.8)
     ax.tick_params(axis = 'both', which = 'major', labelsize = 9)
     plt.xticks(rotation = 90)
 
