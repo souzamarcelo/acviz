@@ -68,7 +68,7 @@ def __hover(event):
             fig.canvas.draw_idle()
 
 
-def __plotTraining(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular):
+def __plotTraining(data, restarts, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular):
     global annotations, ax, fig, plotData
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
@@ -76,7 +76,7 @@ def __plotTraining(data, restarts, objective, showElites, showInstances, showCon
     ax.set_yscale('log')
 
     plt.xlabel('candidate evaluations' if not overTime else 'cumulative running time [in seconds]')
-    plt.ylabel('solution cost [relative deviation]' if objective == 'cost' else 'running time [relative deviation]')
+    plt.ylabel('resulting value [relative deviation]')
 
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
     data['color'] = data.apply(lambda x: colors[(x['instanceseed'] - 1) % len(colors)] if showInstances else simpleColors[x['type']] if showElites else 'black', axis = 1)
@@ -223,7 +223,7 @@ def __plotTest(testData):
     fig.tight_layout()
 
 
-def __readTest(iracelog, objective, bkvFile):
+def __readTest(iracelog, bkvFile):
     robjects.r['load'](iracelog)
     testInstanceIds = list(np.array(robjects.r('names(iraceResults$scenario$testInstances)')))
     testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.') if '.' in instance else len(instance)] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
@@ -278,15 +278,15 @@ def __readTest(iracelog, objective, bkvFile):
         testData['bkv'] = testData['instancename'].map(lambda x: bkv[bkv['instancename'] == x]['bkv'].min())
     for instance in testData['instancename'].unique().tolist():
         testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
-    if objective == 'time':
-        testData['result'] = testData['result'].map(lambda x: max(x, 0.000001))
-        testData['bkv'] = testData['bkv'].map(lambda x: max(x, 0.000001))
+    
+    testData['result'] = testData['result'].map(lambda x: max(x, 0.000001))
+    testData['bkv'] = testData['bkv'].map(lambda x: max(x, 0.000001))
     testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
     
     return testData
 
 
-def __readTraining(iracelog, objective, bkvFile, overTime, imputation):
+def __readTraining(iracelog, bkvFile, overTime, imputation):
     robjects.r['load'](iracelog)
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
@@ -329,10 +329,9 @@ def __readTraining(iracelog, objective, bkvFile, overTime, imputation):
     for instance in data['instance'].unique().tolist():
         data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
     
-    if objective == 'time':
-        data['value'] = data['value'].map(lambda x: max(x, 0.000001))
-        data['bkv'] = data['bkv'].map(lambda x: max(x, 0.000001))
-
+    
+    data['value'] = data['value'].map(lambda x: max(x, 0.000001))
+    data['bkv'] = data['bkv'].map(lambda x: max(x, 0.000001))
     data['yaxis'] = abs(1 - (data['value'] / data['bkv']))
     data.loc[data['yaxis'] == 0, 'yaxis'] = data[data['yaxis'] > 0]['yaxis'].min() / 2
 
@@ -383,15 +382,15 @@ def __readTraining(iracelog, objective, bkvFile, overTime, imputation):
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
   
 
-def getPlot(iracelog, objective = 'cost', showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False):
+def getPlot(iracelog, showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False):
     global plt
     if userPlt is not None: plt = userPlt 
     if testing:
-        testData = __readTest(iracelog, objective, bkv)
+        testData = __readTest(iracelog, bkv)
         __plotTest(testData)
     else:
-        data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, objective, bkv, overTime, imputation)
-        __plotTraining(data, restarts, objective, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
+        data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
+        __plotTraining(data, restarts, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
     if exportData:
         if not testing:
             if not os.path.exists('./export'): os.mkdir('./export')
@@ -418,7 +417,6 @@ if __name__ == "__main__":
     optional = parser.add_argument_group('optional arguments')
     required.add_argument('--iracelog', help = 'input of irace log file (.Rdata)', metavar = '<file>', required = ('--version' not in sys.argv and '-v' not in sys.argv))
     optional.add_argument('-v', '--version', help = 'show description and exit', action = 'store_true')
-    optional.add_argument('--objective', help = 'performance measure used by irace [cost or time] (default: cost)', metavar = '<obj>', default = 'cost', type = str)
     optional.add_argument('--overtime', help = 'plot the execution over the accumulated configuration time (disabled by default)', action = 'store_true')
     optional.add_argument('--bkv', help = 'file containing best known values for the instances used (null by default)', metavar = '<file>')
     optional.add_argument('--noelites', help = 'enables identification of elite configurations (disabled by default)', action = 'store_false')
@@ -433,7 +431,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.version: print(desc); exit()
     if not args.iracelog: print('Invalid arguments!\nPlease input the irace log file using \'--iracelog <file>\'\n'); parser.print_help(); exit()
-    if args.objective.lower() not in ('cost', 'time'): print('Invalid objective. Use either COST or TIME.'); parser.print_help(); exit()
     
     print(desc)
     settings = '> Settings:\n'
@@ -454,7 +451,6 @@ if __name__ == "__main__":
     
     getPlot(
         iracelog = args.iracelog,
-        objective = args.objective,
         showElites = args.noelites,
         showInstances = args.noinstances,
         showConfigurations = args.configurations,
