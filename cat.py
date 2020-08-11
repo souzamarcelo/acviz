@@ -162,47 +162,49 @@ def __plotTraining(data, restarts, showElites, showInstances, showConfigurations
     if showToolTips: fig.canvas.mpl_connect('motion_notify_event', __hover)
 
 
-def __plotTest(testData):
-    testData = testData[(testData['elite'] | testData['finalelite'])]
+def __plotTest(testData, firstElites, finalElites):
     trainInstances = list(testData[testData['instancetype'] == 'train']['instancename'].unique())
     instances = list(testData[testData['instancetype'] == 'test']['instancename'].unique()) + trainInstances
-    testData = testData.sort_values(by = 'eliteorder')
-    elitesData = testData[testData['elite']][['configuration', 'instancename', 'relatediterations', 'rank', 'yaxis']]
-    testData = testData.sort_values(by = 'finaleliteorder', na_position = 'first', ascending = False)
-    finalData = testData[testData['finalelite']][['configuration', 'instancename', 'finaleliteorder', 'rank', 'yaxis']]
-    for instanceName in instances:
-        elitesData.loc[elitesData['instancename'] == instanceName, 'rank'] = elitesData[elitesData['instancename'] == instanceName]['yaxis'].rank(method = 'min')
-        finalData.loc[finalData['instancename'] == instanceName, 'rank'] = finalData[finalData['instancename'] == instanceName]['yaxis'].rank(method = 'min')
+    
+    elites = []
+    for elite in firstElites + finalElites:
+        if elite in elites: elites.remove(elite)
+        elites.append(elite)
 
-    dataPlot = [[], [], [], []]
-    eliteConf = elitesData['configuration'].unique()
-    finalConf = finalData['configuration'].unique()
+    elitesLabels = []
+    for elite in elites:
+        label = '$'
+        for j in range(len(firstElites) - 1):
+            if elite == firstElites[j]: label += str(j + 1) + ','
+        label += str(len(firstElites)) + '_{' + str(finalElites.index(elite) + 1) + '},' if elite in finalElites else ','
+        label = label[:-1]
+        label += '$'
+        elitesLabels.append(label)
+    
+    testData['rank'] = 'NA'
+    for instanceName in instances:
+        testData.loc[testData['instancename'] == instanceName, 'rank'] = testData[testData['instancename'] == instanceName]['yaxis'].rank(method = 'min')
+
+    dataPlot = [[], []]
     for i in range(len(instances)):
         dataPlot[0].append([])
         dataPlot[1].append([])
-        dataPlot[2].append([])
-        dataPlot[3].append([])
-        for j in range(len(eliteConf)):
-            dataPlot[0][i].append(elitesData[(elitesData['instancename'] == instances[i]) & (elitesData['configuration'] == eliteConf[j])]['yaxis'].median())
-            dataPlot[1][i].append(elitesData[(elitesData['instancename'] == instances[i]) & (elitesData['configuration'] == eliteConf[j])]['rank'].median())
-        for j in range(len(finalConf)):
-            dataPlot[2][i].append(finalData[(finalData['instancename'] == instances[i]) & (finalData['configuration'] == finalConf[j])]['yaxis'].median())
-            dataPlot[3][i].append(finalData[(finalData['instancename'] == instances[i]) & (finalData['configuration'] == finalConf[j])]['rank'].median())
-    titles = ['First elites of each iteration\n[mean relative deviations]', 'First elites of each iteration\n[ranks by instance]', 'Elites of last iteration\n[mean relative deviations]', 'Elites of last iteration\n[ranks by instance]']
+        for elite in elites:
+            dataPlot[0][i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == elite)]['yaxis'].median())
+            dataPlot[1][i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == elite)]['rank'].median())
+    titles = ['Results of first elites and final elites\n[mean relative deviations]', 'Results of first elites and final elites\n[ranks by instance]']
 
     fig = plt.figure('Plot testing data [cat]')
-    for index in range(0, 4):
-        configList = list(eliteConf) if index <= 1 else list(finalConf)
-        ax = fig.add_subplot(1, 4, index + 1, label = 'plot_test')
+    for index in range(0, 2):
+        ax = fig.add_subplot(1, 2, index + 1, label = 'plot_test')
         im = ax.imshow(dataPlot[index], cmap = 'RdYlGn_r', aspect = 'auto')
         ax.set_title(titles[index], fontsize = 10)
         ax.tick_params(axis = 'both', which = 'both', labelsize = 8)
         ax.tick_params(top = False, bottom = True, labeltop = False, labelbottom = True, left = True, right = False, labelleft = True, labelright = False)
         ax.set_xticks(np.arange(len(dataPlot[index][1]) + 1) - .5, minor = True)
         ax.set_yticks(np.arange(len(dataPlot[index]) + 1) - .5, minor = True)
-        ax.set_xticks(np.arange(len(configList)))
-        if index <= 1: ax.set_xticklabels([str(config) + ' [' + elitesData[elitesData['configuration'] == config]['relatediterations'].unique()[0] + ']' for config in configList])
-        else: ax.set_xticklabels([str(config) + ' [' + str(int(finalData[finalData['configuration'] == config]['finaleliteorder'].unique()[0])) + ']' for config in configList])
+        ax.set_xticks(np.arange(len(elites)))
+        ax.set_xticklabels([str(elites[i]) + ' (' + elitesLabels[i] + ')' for i in range(len(elites))])
         ax.grid(which = 'minor', color = 'w', linestyle = '-', linewidth = 2)
         ax.tick_params(which = 'minor', bottom = False, left = False)
         plt.setp(ax.get_xticklabels(), rotation = 90, va = 'center', ha = 'right', rotation_mode = 'anchor')
@@ -225,52 +227,25 @@ def __plotTest(testData):
 
 def __readTest(iracelog, bkvFile):
     robjects.r['load'](iracelog)
-    testInstanceIds = list(np.array(robjects.r('names(iraceResults$scenario$testInstances)')))
+    testInstances = list(np.array(robjects.r('rownames(iraceResults$testing$experiments)')))
     testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.') if '.' in instance else len(instance)] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
-    testInstances = np.array(robjects.r('rownames(iraceResults$testing$experiments)'))
-    testConfigurations = np.array(robjects.r('colnames(iraceResults$testing$experiments)'))
-    testResults = np.array(robjects.r('iraceResults$testing$experiments'))
     trainInstanceNames = [x[x.rindex('/') + 1:x.rindex('.') if '.' in x else len(x)] for x in list(set(np.array(robjects.r('iraceResults$scenario$instances'))))]
-    elites = []
-    for i in range(1, int(robjects.r('iraceResults$state$indexIteration')[0])):
-        elites.append([int(item) for item in str(robjects.r('iraceResults$allElites[[' + str(i) + ']]')).replace('[1]', '').strip().split()])
+    testConfigurations = [int(x) for x in np.array(robjects.r('colnames(iraceResults$testing$experiments)'))]
+    testResults = np.array(robjects.r('iraceResults$testing$experiments'))
+    firstElites = [int(str(robjects.r('iraceResults$allElites[[' + str(i) + ']]')).replace('[1]', '').strip().split()[0]) for i in range(1, int(robjects.r('iraceResults$state$indexIteration')[0]))]
+    finalElites = [int(x) for x in str(robjects.r('iraceResults$allElites[[' + str(int(robjects.r('iraceResults$state$indexIteration')[0]) - 1) + ']]')).replace('[1]', '').strip().split()]
 
     testData = {'configuration': [], 'instanceid': [], 'instancename': [], 'result': []}
     for i in range(len(testInstances)):
         for j in range(len(testConfigurations)):
             testData['instanceid'].append(testInstances[i])
-            testData['instancename'].append(testInstanceNames[testInstanceIds.index(testInstances[i])])
+            testData['instancename'].append(testInstanceNames[i])
             testData['configuration'].append(int(testConfigurations[j]))
             testData['result'].append(testResults[i][j])
     testData = pd.DataFrame.from_dict(testData)
-    testData = testData.groupby(['configuration', 'instancename'], as_index = False).agg({'result': 'median'})
+    testData = testData.groupby(['configuration', 'instancename'], as_index = False).agg({'result': 'mean'})
     testData['instancetype'] = testData['instancename'].map(lambda x: 'train' if x in trainInstanceNames else 'test')
-    testData['relatediterations'] = ''
-    testData['elite'] = False
-    testData['eliteorder'] = math.nan
-    testData['finalelite'] = False
-    testData['finaleliteorder'] = math.nan
-    configs = [int(config) for config in testConfigurations]
-    for config in configs:
-        iteration = ''
-        maxIteration = 0
-        for i in range(len(elites)):
-            if config == elites[i][0]:
-                iteration += str(i + 1) + ';'
-                maxIteration = max(maxIteration, i + 1)
-        iteration = iteration[:-1]
-        if config in elites[len(elites) - 1]:
-            testData.loc[testData['configuration'] == config, 'finalelite'] = True
-            testData.loc[testData['configuration'] == config, 'finaleliteorder'] = elites[len(elites) - 1].index(config) + 1
-        if iteration != '':
-            testData.loc[testData['configuration'] == config, 'elite'] = True
-            testData.loc[testData['configuration'] == config, 'eliteorder'] = maxIteration
-            testData.loc[testData['configuration'] == config, 'relatediterations'] = iteration
-    testData['rank'] = 'NA'
-    instanceNames = testData['instancename'].unique()
-    for instanceName in instanceNames:
-        testData.loc[testData['instancename'] == instanceName, 'rank'] = testData[testData['instancename'] == instanceName]['result'].rank(method = 'min')
-
+    
     testData['bkv'] = float('inf')
     if bkvFile is not None:
         bkv = pd.read_csv(bkvFile, sep = ':', header = None, names = ['instancename', 'bkv'])
@@ -279,11 +254,13 @@ def __readTest(iracelog, bkvFile):
     for instance in testData['instancename'].unique().tolist():
         testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
     
-    testData['result'] = testData['result'].map(lambda x: max(x, 0.000001))
-    testData['bkv'] = testData['bkv'].map(lambda x: max(x, 0.000001))
+    testData['result'] = testData['result'].map(lambda x: x if x != 0 else 0.000001)
+    testData['bkv'] = testData['bkv'].map(lambda x: x if x != 0 else 0.000001)
     testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
-    
-    return testData
+    #testData['yaxis'] = abs(testData['result'] - testData['bkv'])
+    #testData['yaxis'] = testData['result']
+
+    return testData, firstElites, finalElites
 
 
 def __readTraining(iracelog, bkvFile, overTime, imputation):
@@ -329,9 +306,8 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
     for instance in data['instance'].unique().tolist():
         data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
     
-    
-    data['value'] = data['value'].map(lambda x: max(x, 0.000001))
-    data['bkv'] = data['bkv'].map(lambda x: max(x, 0.000001))
+    data['value'] = data['value'].map(lambda x: x if x != 0 else 0.000001)
+    data['bkv'] = data['bkv'].map(lambda x: x if x != 0 else 0.000001)
     data['yaxis'] = abs(1 - (data['value'] / data['bkv']))
     data.loc[data['yaxis'] == 0, 'yaxis'] = data[data['yaxis'] > 0]['yaxis'].min() / 2
 
@@ -386,8 +362,8 @@ def getPlot(iracelog, showElites = False, showInstances = False, showConfigurati
     global plt
     if userPlt is not None: plt = userPlt 
     if testing:
-        testData = __readTest(iracelog, bkv)
-        __plotTest(testData)
+        testData, firstElites, finalElites = __readTest(iracelog, bkv)
+        __plotTest(testData, firstElites, finalElites)
     else:
         data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
         __plotTraining(data, restarts, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
@@ -398,7 +374,8 @@ def getPlot(iracelog, showElites = False, showInstances = False, showConfigurati
             file.write(data.to_csv())
             file.close()
             print('> data exported to export/' + output + '.csv')
-        print('> cat only exports training data (remove --testing option)')
+        else:
+            print('> cat only exports training data (remove --testing option)')
     if exportPlot:
         if not os.path.exists('./export'): os.mkdir('./export')
         plt.savefig('./export/' + output + '.pdf', format = 'pdf')
