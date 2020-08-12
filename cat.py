@@ -231,13 +231,13 @@ def __plotTest(testData, firstElites, finalElites, testColors):
     fig.tight_layout()
 
 
-def __readTest(iracelog, bkvFile):
+def __readTest(iracelog, bkvFile, testResults):
     robjects.r['load'](iracelog)
     testInstances = list(np.array(robjects.r('rownames(iraceResults$testing$experiments)')))
     testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.') if '.' in instance else len(instance)] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
     trainInstanceNames = [x[x.rindex('/') + 1:x.rindex('.') if '.' in x else len(x)] for x in list(set(np.array(robjects.r('iraceResults$scenario$instances'))))]
     testConfigurations = [int(x) for x in np.array(robjects.r('colnames(iraceResults$testing$experiments)'))]
-    testResults = np.array(robjects.r('iraceResults$testing$experiments'))
+    testResultsIrace = np.array(robjects.r('iraceResults$testing$experiments'))
     firstElites = [int(str(robjects.r('iraceResults$allElites[[' + str(i) + ']]')).replace('[1]', '').strip().split()[0]) for i in range(1, int(robjects.r('iraceResults$state$indexIteration')[0]))]
     finalElites = [int(x) for x in str(robjects.r('iraceResults$allElites[[' + str(int(robjects.r('iraceResults$state$indexIteration')[0]) - 1) + ']]')).replace('[1]', '').strip().split()]
 
@@ -247,7 +247,7 @@ def __readTest(iracelog, bkvFile):
             testData['instanceid'].append(testInstances[i])
             testData['instancename'].append(testInstanceNames[i])
             testData['configuration'].append(int(testConfigurations[j]))
-            testData['result'].append(testResults[i][j])
+            testData['result'].append(testResultsIrace[i][j])
     testData = pd.DataFrame.from_dict(testData)
     testData = testData.groupby(['configuration', 'instancename'], as_index = False).agg({'result': 'mean'})
     testData['instancetype'] = testData['instancename'].map(lambda x: 'train' if x in trainInstanceNames else 'test')
@@ -262,9 +262,10 @@ def __readTest(iracelog, bkvFile):
     
     testData['result'] = testData['result'].map(lambda x: x if x != 0 else 0.000001)
     testData['bkv'] = testData['bkv'].map(lambda x: x if x != 0 else 0.000001)
-    testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
-    #testData['yaxis'] = abs(testData['result'] - testData['bkv'])
-    #testData['yaxis'] = testData['result']
+    
+    if testResults == 'rdev': testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
+    elif testResults == 'adev': testData['yaxis'] = abs(testData['result'] - testData['bkv'])
+    else: testData['yaxis'] = testData['result']
 
     return testData, firstElites, finalElites
 
@@ -364,11 +365,11 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
   
 
-def getPlot(iracelog, showElites = False, showInstances = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance'):
+def getPlot(iracelog, showElites = False, showInstances = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', testResults = 'raw'):
     global plt
     if userPlt is not None: plt = userPlt 
     if testing:
-        testData, firstElites, finalElites = __readTest(iracelog, bkv)
+        testData, firstElites, finalElites = __readTest(iracelog, bkv, testResults)
         __plotTest(testData, firstElites, finalElites, testColors)
     else:
         data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
@@ -408,6 +409,7 @@ if __name__ == "__main__":
     optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imp>', type = str, default = 'elite')
     optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
     optional.add_argument('--testcolors', help = 'option for how apply the colormap in the test plot [overall, instance] (default: instance)', default = 'instance', metavar = '<col>', type = str)
+    optional.add_argument('--testresults', help = 'defines how the results should be presented in the test plot [rdev, adev, raw] (default: raw)', default = 'raw', metavar = '<res>', type = str)
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
     optional.add_argument('--output', help = 'defines a name for the output files (default: export)', metavar = '<name>', type = str, default = 'export')
@@ -427,6 +429,7 @@ if __name__ == "__main__":
     if args.overtime: settings += '  - plotting over time\n'
     if args.testing: settings += '  - plotting test data\n'
     if args.testing: settings += '  - using a %s-based colormap\n' % args.testcolors
+    if args.testing: settings += '  - presenting results as %s\n' % args.testresults
     if args.exportdata: settings += '  - export data to csv\n'
     if args.exportplot: settings += '  - export plot to pdf and png\n'
     if args.exportdata or args.exportplot: settings += '  - output file name: %s\n' % args.output
@@ -447,6 +450,7 @@ if __name__ == "__main__":
         showToolTips = True,
         imputation = args.imputation,
         testing = args.testing,
-        testColors = args.testcolors
+        testColors = args.testcolors,
+        testResults = args.testresults
     )
     print('-------------------------------------------------------------------------------')
