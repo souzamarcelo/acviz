@@ -68,7 +68,7 @@ def __hover(event):
             fig.canvas.draw_idle()
 
 
-def __plotTraining(data, restarts, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular):
+def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular):
     global annotations, ax, fig, plotData
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
@@ -131,7 +131,7 @@ def __plotTraining(data, restarts, showElites, showInstances, showConfigurations
     legendElements.append(mlines.Line2D([], [], color='#800080', linewidth = 1.8))
     legendDescriptions.append('median elites')
 
-    if showConfigurations:
+    if pconfig > 0:
         for iteration in iterations:
             amount = ceil(len(data[data['iteration'] == iteration]) * pconfig / 100)
             data.groupby('iteration', as_index = False).agg({'xaxis': 'count'})
@@ -142,7 +142,7 @@ def __plotTraining(data, restarts, showElites, showInstances, showConfigurations
             for i in range(len(x)):
                 ax.annotate(names[i], xy = (x[i], y[i]), xytext = (0, -8), textcoords = 'offset pixels', horizontalalignment = 'center', verticalalignment = 'center', fontsize = 6)
 
-    fig.legend(legendElements, legendDescriptions, loc = 'center', bbox_to_anchor = (0.5, 0.075), ncol = 4, handletextpad = 0.5, columnspacing = 1.8)
+    fig.legend(legendElements, legendDescriptions, loc = 'center', bbox_to_anchor = (0.5, 0.06), ncol = 4, handletextpad = 0.5, columnspacing = 1.8)
     ax.tick_params(axis = 'both', which = 'major', labelsize = 9)
     plt.xticks(rotation = 90)
 
@@ -364,7 +364,7 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
   
 
-def getPlot(iracelog, showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance'):
+def getPlot(iracelog, showElites = False, showInstances = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance'):
     global plt
     if userPlt is not None: plt = userPlt 
     if testing:
@@ -372,7 +372,7 @@ def getPlot(iracelog, showElites = False, showInstances = False, showConfigurati
         __plotTest(testData, firstElites, finalElites, testColors)
     else:
         data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
-        __plotTraining(data, restarts, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
+        __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
     if exportData:
         if not testing:
             if not os.path.exists('./export'): os.mkdir('./export')
@@ -403,8 +403,7 @@ if __name__ == "__main__":
     optional.add_argument('--overtime', help = 'plot the execution over the accumulated configuration time (disabled by default)', action = 'store_true')
     optional.add_argument('--bkv', help = 'file containing best known values for the instances used (null by default)', metavar = '<file>')
     optional.add_argument('--noelites', help = 'enables identification of elite configurations (disabled by default)', action = 'store_false')
-    optional.add_argument('--configurations', help = 'enables identification of configurations (disabled by default)', action = 'store_true')
-    optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 10)', metavar = '<p>', default = 10, type = int)
+    optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 0)', metavar = '<p>', default = 0, type = int)
     optional.add_argument('--noinstances', help = 'enables identification of instances (disabled by default)', action = 'store_false')
     optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imp>', type = str, default = 'elite')
     optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
@@ -424,10 +423,10 @@ if __name__ == "__main__":
     if args.bkv is not None: settings += '  - bkv file: ' + str(args.bkv) + '\n'
     if args.noelites: settings += '  - show elite configurations\n'
     if args.noinstances: settings += '  - identify instances\n'
-    if args.configurations: settings += '  - show configurations of the best performers\n'
-    if args.configurations: settings += '  - pconfig = %d\n' % args.pconfig
+    if args.pconfig > 0: settings += '  - showing the best configurations (pconfig = %d)\n' % args.pconfig
     if args.overtime: settings += '  - plotting over time\n'
     if args.testing: settings += '  - plotting test data\n'
+    if args.testing: settings += '  - using a %s-based colormap\n' % args.testcolors
     if args.exportdata: settings += '  - export data to csv\n'
     if args.exportplot: settings += '  - export plot to pdf and png\n'
     if args.exportdata or args.exportplot: settings += '  - output file name: %s\n' % args.output
@@ -437,7 +436,6 @@ if __name__ == "__main__":
         iracelog = args.iracelog,
         showElites = args.noelites,
         showInstances = args.noinstances,
-        showConfigurations = args.configurations,
         pconfig = args.pconfig,
         showPlot = True,
         exportData = args.exportdata,
