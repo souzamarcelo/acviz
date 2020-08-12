@@ -186,18 +186,23 @@ def __plotTest(testData, firstElites, finalElites):
         testData.loc[testData['instancename'] == instanceName, 'rank'] = testData[testData['instancename'] == instanceName]['yaxis'].rank(method = 'min')
 
     dataPlot = [[], []]
+    normPlot = [[], []]
     for i in range(len(instances)):
         dataPlot[0].append([])
         dataPlot[1].append([])
+        normPlot[0].append([])
+        normPlot[1].append([])
         for elite in elites:
             dataPlot[0][i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == elite)]['yaxis'].median())
             dataPlot[1][i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == elite)]['rank'].median())
+        normPlot[0][i] = [(value - min(dataPlot[0][i])) / (max(dataPlot[0][i]) - min(dataPlot[0][i])) for value in dataPlot[0][i]]
+        normPlot[1][i] = [(value - min(dataPlot[1][i])) / (max(dataPlot[1][i]) - min(dataPlot[1][i])) for value in dataPlot[1][i]]
     titles = ['Results of first elites and final elites\n[mean relative deviations]', 'Results of first elites and final elites\n[ranks by instance]']
 
     fig = plt.figure('Plot testing data [cat]')
     for index in range(0, 2):
         ax = fig.add_subplot(1, 2, index + 1, label = 'plot_test')
-        im = ax.imshow(dataPlot[index], cmap = 'RdYlGn_r', aspect = 'auto')
+        im = ax.imshow(normPlot[index], cmap = 'RdYlGn_r', aspect = 'auto')
         ax.set_title(titles[index], fontsize = 10)
         ax.tick_params(axis = 'both', which = 'both', labelsize = 8)
         ax.tick_params(top = False, bottom = True, labeltop = False, labelbottom = True, left = True, right = False, labelleft = True, labelright = False)
