@@ -162,7 +162,7 @@ def __plotTraining(data, restarts, showElites, showInstances, showConfigurations
     if showToolTips: fig.canvas.mpl_connect('motion_notify_event', __hover)
 
 
-def __plotTest(testData, firstElites, finalElites):
+def __plotTest(testData, firstElites, finalElites, testColors):
     trainInstances = list(testData[testData['instancetype'] == 'train']['instancename'].unique())
     instances = list(testData[testData['instancetype'] == 'test']['instancename'].unique()) + trainInstances
     
@@ -200,9 +200,10 @@ def __plotTest(testData, firstElites, finalElites):
     titles = ['Results of first elites and final elites\n[mean relative deviations]', 'Results of first elites and final elites\n[ranks by instance]']
 
     fig = plt.figure('Plot testing data [cat]')
+    data = dataPlot if testColors == 'general' else normPlot
     for index in range(0, 2):
         ax = fig.add_subplot(1, 2, index + 1, label = 'plot_test')
-        im = ax.imshow(normPlot[index], cmap = 'RdYlGn_r', aspect = 'auto')
+        im = ax.imshow(data[index], cmap = 'RdYlGn_r', aspect = 'auto')
         ax.set_title(titles[index], fontsize = 10)
         ax.tick_params(axis = 'both', which = 'both', labelsize = 8)
         ax.tick_params(top = False, bottom = True, labeltop = False, labelbottom = True, left = True, right = False, labelleft = True, labelright = False)
@@ -363,12 +364,12 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
   
 
-def getPlot(iracelog, showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False):
+def getPlot(iracelog, showElites = False, showInstances = False, showConfigurations = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance'):
     global plt
     if userPlt is not None: plt = userPlt 
     if testing:
         testData, firstElites, finalElites = __readTest(iracelog, bkv)
-        __plotTest(testData, firstElites, finalElites)
+        __plotTest(testData, firstElites, finalElites, testColors)
     else:
         data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
         __plotTraining(data, restarts, showElites, showInstances, showConfigurations, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
@@ -405,8 +406,9 @@ if __name__ == "__main__":
     optional.add_argument('--configurations', help = 'enables identification of configurations (disabled by default)', action = 'store_true')
     optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 10)', metavar = '<p>', default = 10, type = int)
     optional.add_argument('--noinstances', help = 'enables identification of instances (disabled by default)', action = 'store_false')
-    optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imputation>', type = str, default = 'elite')
+    optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imp>', type = str, default = 'elite')
     optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
+    optional.add_argument('--testcolors', help = 'option for how apply the colormap in the test plot [overall, instance] (default: instance)', default = 'instance', metavar = '<col>', type = str)
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
     optional.add_argument('--output', help = 'defines a name for the output files (default: export)', metavar = '<name>', type = str, default = 'export')
@@ -446,6 +448,7 @@ if __name__ == "__main__":
         userPlt = None,
         showToolTips = True,
         imputation = args.imputation,
-        testing = args.testing
+        testing = args.testing,
+        testColors = args.testcolors
     )
     print('-------------------------------------------------------------------------------')
