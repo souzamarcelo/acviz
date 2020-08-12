@@ -176,8 +176,8 @@ def __plotTest(testData, firstElites, finalElites, testColors):
         label = '$'
         for j in range(len(firstElites) - 1):
             if elite == firstElites[j]: label += str(j + 1) + ','
-        label += str(len(firstElites)) + '_{' + str(finalElites.index(elite) + 1) + '},' if elite in finalElites else ','
-        label = label[:-1]
+        label += str(len(firstElites)) + '_{' + str(finalElites.index(elite) + 1) + '}' if elite in finalElites else ''
+        label = label[:-1] if label[-1] == ',' else label
         label += '$'
         elitesLabels.append(label)
     
@@ -195,10 +195,11 @@ def __plotTest(testData, firstElites, finalElites, testColors):
         for elite in elites:
             dataPlot[0][i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == elite)]['yaxis'].median())
             dataPlot[1][i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == elite)]['rank'].median())
-        normPlot[0][i] = [(value - min(dataPlot[0][i])) / (max(dataPlot[0][i]) - min(dataPlot[0][i])) for value in dataPlot[0][i]]
-        normPlot[1][i] = [(value - min(dataPlot[1][i])) / (max(dataPlot[1][i]) - min(dataPlot[1][i])) for value in dataPlot[1][i]]
+        addMax = [1 if len(set(dataPlot[x][i])) == 1 else 0 for x in [0, 1]]
+        normPlot[0][i] = [(value - min(dataPlot[0][i])) / (max(dataPlot[0][i]) + addMax[0] - min(dataPlot[0][i])) for value in dataPlot[0][i]]
+        normPlot[1][i] = [(value - min(dataPlot[1][i])) / (max(dataPlot[1][i]) + addMax[1] - min(dataPlot[1][i])) for value in dataPlot[1][i]]
     titles = ['Results of first elites and final elites\n[mean relative deviations]', 'Results of first elites and final elites\n[ranks by instance]']
-
+    
     fig = plt.figure('Plot testing data [cat]')
     data = dataPlot if testColors == 'general' else normPlot
     for index in range(0, 2):
