@@ -162,7 +162,7 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     if showToolTips: fig.canvas.mpl_connect('motion_notify_event', __hover)
 
 
-def __plotTest(testData, firstElites, finalElites, testColors):
+def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
     trainInstances = list(testData[testData['instancetype'] == 'train']['instancename'].unique())
     instances = list(testData[testData['instancetype'] == 'test']['instancename'].unique()) + trainInstances
     
@@ -198,7 +198,7 @@ def __plotTest(testData, firstElites, finalElites, testColors):
         addMax = [1 if len(set(dataPlot[x][i])) == 1 else 0 for x in [0, 1]]
         normPlot[0][i] = [(value - min(dataPlot[0][i])) / (max(dataPlot[0][i]) + addMax[0] - min(dataPlot[0][i])) for value in dataPlot[0][i]]
         normPlot[1][i] = [(value - min(dataPlot[1][i])) / (max(dataPlot[1][i]) + addMax[1] - min(dataPlot[1][i])) for value in dataPlot[1][i]]
-    titles = ['Results of first elites and final elites\n[mean relative deviations]', 'Results of first elites and final elites\n[ranks by instance]']
+    titles = ['Mean raw values' if testsResults == 'raw' else 'Mean relative deviations' if testsResults == 'rdev' else 'Mean absolute deviations', 'Ranks by instance']
     
     fig = plt.figure('Plot testing data [cat]')
     data = dataPlot if testColors == 'general' else normPlot
@@ -371,7 +371,7 @@ def getPlot(iracelog, showElites = False, showInstances = False, pconfig = 10, s
     if userPlt is not None: plt = userPlt 
     if testing:
         testData, firstElites, finalElites = __readTest(iracelog, bkv, testResults)
-        __plotTest(testData, firstElites, finalElites, testColors)
+        __plotTest(testData, firstElites, finalElites, testColors, testResults)
     else:
         data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
         __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
