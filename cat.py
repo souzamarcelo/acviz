@@ -168,8 +168,9 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
     
     elites = []
     for elite in firstElites + finalElites:
-        if elite in elites: elites.remove(elite)
-        elites.append(elite)
+        #if elite in elites: elites.remove(elite)
+        if elite not in elites:
+            elites.append(elite)
 
     elitesLabels = []
     for elite in elites:
@@ -309,7 +310,8 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
     if bkvFile is not None:
         bkv = pd.read_csv(bkvFile, sep = ':', header = None, names = ['instancename', 'bkv'])
         bkv['bkv'] = pd.to_numeric(bkv['bkv'], errors = 'raise')
-        data['bkv'] = data['instancename'].map(lambda x: bkv[bkv['instancename'] == x]['bkv'].min())
+        for instance in data['instancename'].unique().tolist():
+            data.loc[data['instancename'] == instance, 'bkv'] = bkv[bkv['instancename'] == instance]['bkv'].min()
 
     for instance in data['instance'].unique().tolist():
         data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
