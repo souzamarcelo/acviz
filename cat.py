@@ -91,11 +91,11 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
         legendElements.append(copy(plt.scatter(data[data['type'] == 'elite']['xaxis'], data[data['type'] == 'elite']['yaxis'], alpha = 1, c = data[data['type'] == 'elite']['color'], edgecolors = 'black', marker = 'o', linewidth = 0.7, s = 24)))
         legendElements.append(copy(plt.scatter(data[data['type'] == 'final']['xaxis'], data[data['type'] == 'final']['yaxis'], alpha = 1, c = data[data['type'] == 'final']['color'], edgecolors = 'black', marker = 'D', linewidth = 0.7, s = 22)))
         legendElements.append(copy(plt.scatter(data[data['type'] == 'best']['xaxis'], data[data['type'] == 'best']['yaxis'], alpha = 1, c = data[data['type'] == 'best']['color'], edgecolors = 'black', marker = '*', linewidth = 0.7, s = 70)))
-        legendDescriptions.extend(['regular exec.', 'elite config.', 'final elite config.', 'best found config.'])
+        legendDescriptions.extend(['regular config.', 'elite config.', 'final elite config.', 'best found config.'])
     else:
         plotData.append(data)
         legendElements.append(copy(plt.scatter(data['xaxis'], data['yaxis'], alpha = 1, c = data['color'], marker = 'x', linewidth = 0.5, s = 16)))
-        legendDescriptions.append('regular exec.')
+        legendDescriptions.append('regular config.')
     if showInstances:
         for element in legendElements: element.set_edgecolor('black'); element.set_facecolor('grey')
 
@@ -167,7 +167,11 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
     instances = list(testData[testData['instancetype'] == 'test']['instancename'].unique()) + trainInstances
     
     elites = []
-    for elite in firstElites + finalElites:
+    for elite in firstElites[:-1]:
+        if elite in elites:
+            elites.remove(elite)
+        elites.append(elite)
+    for elite in finalElites:
         if elite not in elites:
             elites.append(elite)
 
