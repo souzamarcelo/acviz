@@ -168,7 +168,6 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
     
     elites = []
     for elite in firstElites + finalElites:
-        #if elite in elites: elites.remove(elite)
         if elite not in elites:
             elites.append(elite)
 
@@ -254,14 +253,28 @@ def __readTest(iracelog, bkvFile, testResults):
     testData = testData.groupby(['configuration', 'instancename'], as_index = False).agg({'result': 'mean'})
     testData['instancetype'] = testData['instancename'].map(lambda x: 'train' if x in trainInstanceNames else 'test')
     
+    iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
+    iraceExp = np.array(robjects.r('iraceResults$experiments'))
+    iraceInstances = np.array(robjects.r('iraceResults$state$.irace$instancesList'))[0]
+    experiments = []
+    for i in range(len(iraceExpLog)):
+        experiment = {}
+        experiment['instance'] = int(iraceExpLog[i][1])
+        experiment['configuration'] = int(iraceExpLog[i][2])
+        experiment['result'] = iraceExp[experiment['instance'] - 1][experiment['configuration'] - 1]
+        experiments.append(experiment)
+    trainingData = pd.DataFrame(experiments)
+    trainingData['instance'] = trainingData['instance'].map(lambda x: iraceInstances[x - 1])
+    trainingData['instancename'] = trainingData['instance'].map(lambda x: trainInstanceNames[x - 1])
+
     testData['bkv'] = float('inf')
     if bkvFile is not None:
         bkv = pd.read_csv(bkvFile, sep = ':', header = None, names = ['instancename', 'bkv'])
         bkv['bkv'] = pd.to_numeric(bkv['bkv'], errors = 'raise')
         testData['bkv'] = testData['instancename'].map(lambda x: bkv[bkv['instancename'] == x]['bkv'].min())
     for instance in testData['instancename'].unique().tolist():
-        testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
-    
+        testData.loc[testData['instancename'] == instance, 'bkv'] = min(testData[testData['instancename'] == instance]['result'].min(), trainingData[trainingData['instancename'] == instance]['result'].min(), testData[testData['instancename'] == instance]['bkv'].min())
+
     testData['result'] = testData['result'].map(lambda x: x if x != 0 else 0.000001)
     testData['bkv'] = testData['bkv'].map(lambda x: x if x != 0 else 0.000001)
     
