@@ -260,6 +260,7 @@ def __readTest(iracelog, bkvFile, testResults):
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceInstances = np.array(robjects.r('iraceResults$state$.irace$instancesList'))[0]
+    iraceInstanceNames = [x[x.rindex('/') + 1:x.rindex('.') if '.' in x else len(x)] for x in list(np.array(robjects.r('iraceResults$scenario$instances')))]
     experiments = []
     for i in range(len(iraceExpLog)):
         experiment = {}
@@ -269,7 +270,7 @@ def __readTest(iracelog, bkvFile, testResults):
         experiments.append(experiment)
     trainingData = pd.DataFrame(experiments)
     trainingData['instance'] = trainingData['instance'].map(lambda x: iraceInstances[x - 1])
-    trainingData['instancename'] = trainingData['instance'].map(lambda x: trainInstanceNames[x - 1])
+    trainingData['instancename'] = trainingData['instance'].map(lambda x: iraceInstanceNames[x - 1].replace('/home/msouza/autobqp/autobqp-palubeckis-maxcut', ''))
 
     testData['bkv'] = float('inf')
     if bkvFile is not None:
