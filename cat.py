@@ -237,7 +237,9 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
                 normed[index].append([])
                 for j in range(len(data[index][0])):
                     normed[index][i].append((data[index][i][j] - minValue[index]) / (maxValue[index] - minValue[index]))
-
+        else:
+            normed = data
+            
         texts = []
         for i in range(len(dataPlot[index])):
             for j in range(len(dataPlot[index][0])):
