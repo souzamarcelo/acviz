@@ -203,8 +203,8 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
             dataPlot[1][i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == elite)]['rank'].median())
             minValue[0] = min(minValue[0], dataPlot[0][i][-1])
             minValue[1] = min(minValue[1], dataPlot[1][i][-1])
-            maxValue[0] = max(minValue[0], dataPlot[0][i][-1])
-            maxValue[1] = max(minValue[1], dataPlot[1][i][-1])
+            maxValue[0] = max(maxValue[0], dataPlot[0][i][-1])
+            maxValue[1] = max(maxValue[1], dataPlot[1][i][-1])
         addMax = [1 if len(set(dataPlot[x][i])) == 1 else 0 for x in [0, 1]]
         normPlot[0][i] = [(value - min(dataPlot[0][i])) / (max(dataPlot[0][i]) + addMax[0] - min(dataPlot[0][i])) for value in dataPlot[0][i]]
         normPlot[1][i] = [(value - min(dataPlot[1][i])) / (max(dataPlot[1][i]) + addMax[1] - min(dataPlot[1][i])) for value in dataPlot[1][i]]
@@ -231,11 +231,12 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
         [label.set_color('#5D6D7E' if label.get_text() in trainInstances else '#0000FF') for label in plt.gca().get_yticklabels()]
         if index > 0: ax.set_yticks([])
 
-        normed = data
+        normed = [[], []]
         if testColors == 'general':
             for i in range(len(data[index])):
+                normed[index].append([])
                 for j in range(len(data[index][0])):
-                    normed[index][i][j] = (normed[index][i][j] - minValue[index]) / (maxValue[index] - minValue[index])
+                    normed[index][i].append((data[index][i][j] - minValue[index]) / (maxValue[index] - minValue[index]))
 
         texts = []
         for i in range(len(dataPlot[index])):
