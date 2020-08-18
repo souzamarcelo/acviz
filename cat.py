@@ -11,6 +11,7 @@ from rpy2 import robjects
 from math import log
 from math import ceil
 from copy import copy
+from natsort import natsorted
 
 desc = '''
 -------------------------------------------------------------------------------
@@ -163,9 +164,9 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
 
 
 def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
-    trainInstances = list(testData[testData['instancetype'] == 'train']['instancename'].unique())
-    instances = list(testData[testData['instancetype'] == 'test']['instancename'].unique()) + trainInstances
-    
+    trainInstances = natsorted(list(testData[testData['instancetype'] == 'train']['instancename'].unique()), key = lambda x: x.lower())
+    instances = natsorted(list(testData[testData['instancetype'] == 'test']['instancename'].unique()), key = lambda x: x.lower()) + trainInstances
+
     elites = []
     for elite in firstElites[:-1]:
         if elite in elites:
