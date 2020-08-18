@@ -191,6 +191,8 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
 
     dataPlot = [[], []]
     normPlot = [[], []]
+    minValue = [float('inf'), float('inf')]
+    maxValue = [float('-inf'), float('-inf')]
     for i in range(len(instances)):
         dataPlot[0].append([])
         dataPlot[1].append([])
@@ -199,6 +201,10 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
         for elite in elites:
             dataPlot[0][i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == elite)]['yaxis'].median())
             dataPlot[1][i].append(testData[(testData['instancename'] == instances[i]) & (testData['configuration'] == elite)]['rank'].median())
+            minValue[0] = min(minValue[0], dataPlot[0][i][-1])
+            minValue[1] = min(minValue[1], dataPlot[1][i][-1])
+            maxValue[0] = max(minValue[0], dataPlot[0][i][-1])
+            maxValue[1] = max(minValue[1], dataPlot[1][i][-1])
         addMax = [1 if len(set(dataPlot[x][i])) == 1 else 0 for x in [0, 1]]
         normPlot[0][i] = [(value - min(dataPlot[0][i])) / (max(dataPlot[0][i]) + addMax[0] - min(dataPlot[0][i])) for value in dataPlot[0][i]]
         normPlot[1][i] = [(value - min(dataPlot[1][i])) / (max(dataPlot[1][i]) + addMax[1] - min(dataPlot[1][i])) for value in dataPlot[1][i]]
@@ -206,6 +212,7 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
     
     fig = plt.figure('Plot testing data [cat]')
     data = dataPlot if testColors == 'general' else normPlot
+    
     for index in range(0, 2):
         ax = fig.add_subplot(1, 2, index + 1, label = 'plot_test')
         im = ax.imshow(data[index], cmap = 'RdYlGn_r', aspect = 'auto')
@@ -223,13 +230,19 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
         ax.set_yticklabels(instances)
         [label.set_color('#5D6D7E' if label.get_text() in trainInstances else '#0000FF') for label in plt.gca().get_yticklabels()]
         if index > 0: ax.set_yticks([])
-        
+
+        normed = data
+        if testColors == 'general':
+            for i in range(len(data[index])):
+                for j in range(len(data[index][0])):
+                    normed[index][i][j] = (normed[index][i][j] - minValue[index]) / (maxValue[index] - minValue[index])
+
         texts = []
         for i in range(len(dataPlot[index])):
             for j in range(len(dataPlot[index][0])):
-                kw = dict(horizontalalignment = 'center', verticalalignment = 'center', fontsize = 8)
+                kw = dict(horizontalalignment = 'center', verticalalignment = 'center', fontsize = 8, color = 'white' if normed[index][i][j] < 0.15 or normed[index][i][j] > 0.85 else 'black')
                 if not math.isnan(dataPlot[index][i][j]):
-                    text = im.axes.text(j, i, '{:.3f}'.format(dataPlot[index][i][j]) if index in [0, 2] else int(dataPlot[index][i][j]), **kw)                    
+                    text = im.axes.text(j, i, '{:.3f}'.format(dataPlot[index][i][j]) if index == 0 else int(dataPlot[index][i][j]), **kw)                    
                 texts.append(text)
 
     fig.set_size_inches(12, 7)
