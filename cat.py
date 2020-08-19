@@ -77,7 +77,7 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     ax.set_yscale('log')
 
     plt.xlabel('candidate evaluations' if not overTime else 'cumulative running time [in seconds]')
-    plt.ylabel('resulting value [relative deviation]')
+    plt.ylabel('result [relative deviation]')
 
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
     data['color'] = data.apply(lambda x: colors[(x['instanceseed'] - 1) % len(colors)] if showInstances else simpleColors[x['type']] if showElites else 'black', axis = 1)
