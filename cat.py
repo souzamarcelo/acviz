@@ -447,7 +447,7 @@ if __name__ == "__main__":
     optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imp>', type = str, default = 'elite')
     optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
     optional.add_argument('--testcolors', help = 'option for how apply the colormap in the test plot [overall, instance] (default: instance)', default = 'instance', metavar = '<col>', type = str)
-    optional.add_argument('--testresults', help = 'defines how the results should be presented in the test plot [rdev, adev, raw] (default: raw)', default = 'raw', metavar = '<res>', type = str)
+    optional.add_argument('--testresults', help = 'defines how the results should be presented in the test plot [rdev, adev, raw] (default: rdev)', default = 'rdev', metavar = '<res>', type = str)
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
     optional.add_argument('--output', help = 'defines a name for the output files (default: export)', metavar = '<name>', type = str, default = 'export')
