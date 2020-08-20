@@ -20,7 +20,7 @@ desc = '''
 | Copyright (C) 2020                                                          |
 | Marcelo de Souza         <marcelo.desouza@udesc.br>                         |
 | Marcus Ritt              <marcus.ritt@inf.ufrgs.br>                         |
-| Manuel Lopez-Ibanez      <manuel.lopez-ibanez@manchester.ac.uk>             |
+| Manuel Lopez-Ibanez      <manuel.lopez-ibanez@uma.es>                       |
 | Leslie Perez Caceres     <leslie.perez@pucv.cl>                             |
 |                                                                             |
 | This is free software, and you are welcome to redistribute it under certain |
