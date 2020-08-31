@@ -163,18 +163,20 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     if showToolTips: fig.canvas.mpl_connect('motion_notify_event', __hover)
 
 
-def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
+def __plotTest(testData, firstElites, finalElites, testConfigurations, testColors, testsResults):
     trainInstances = natsorted(list(testData[testData['instancetype'] == 'train']['instancename'].unique()), key = lambda x: x.lower())
     instances = natsorted(list(testData[testData['instancetype'] == 'test']['instancename'].unique()), key = lambda x: x.lower()) + trainInstances
 
     elites = []
     for elite in firstElites[:-1]:
-        if elite in elites:
-            elites.remove(elite)
-        elites.append(elite)
-    for elite in finalElites:
-        if elite not in elites:
+        if elite in testConfigurations:
+            if elite in elites:
+                elites.remove(elite)
             elites.append(elite)
+    for elite in finalElites:
+        if elite in testConfigurations:
+            if elite not in elites:
+                elites.append(elite)
 
     elitesLabels = []
     for elite in elites:
@@ -207,6 +209,7 @@ def __plotTest(testData, firstElites, finalElites, testColors, testsResults):
             maxValue[0] = max(maxValue[0], dataPlot[0][i][-1])
             maxValue[1] = max(maxValue[1], dataPlot[1][i][-1])
         addMax = [1 if len(set(dataPlot[x][i])) == 1 else 0 for x in [0, 1]]
+
         normPlot[0][i] = [(value - min(dataPlot[0][i])) / (max(dataPlot[0][i]) + addMax[0] - min(dataPlot[0][i])) for value in dataPlot[0][i]]
         normPlot[1][i] = [(value - min(dataPlot[1][i])) / (max(dataPlot[1][i]) + addMax[1] - min(dataPlot[1][i])) for value in dataPlot[1][i]]
     titles = ['Mean raw values' if testsResults == 'raw' else 'Mean relative deviations' if testsResults == 'rdev' else 'Mean absolute deviations', 'Ranks by instance']
@@ -304,7 +307,7 @@ def __readTest(iracelog, bkvFile, testResults):
     elif testResults == 'adev': testData['yaxis'] = abs(testData['result'] - testData['bkv'])
     else: testData['yaxis'] = testData['result']
 
-    return testData, firstElites, finalElites
+    return testData, firstElites, finalElites, testConfigurations
 
 
 def __readTraining(iracelog, bkvFile, overTime, imputation):
@@ -407,8 +410,8 @@ def getPlot(iracelog, showElites = False, showInstances = False, pconfig = 10, s
     global plt
     if userPlt is not None: plt = userPlt 
     if testing:
-        testData, firstElites, finalElites = __readTest(iracelog, bkv, testResults)
-        __plotTest(testData, firstElites, finalElites, testColors, testResults)
+        testData, firstElites, finalElites, testConfigurations = __readTest(iracelog, bkv, testResults)
+        __plotTest(testData, firstElites, finalElites, testConfigurations, testColors, testResults)
     else:
         data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
         __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
