@@ -88,14 +88,14 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
         plotData.append(data[data['type'] == 'elite'])
         plotData.append(data[data['type'] == 'final'])
         plotData.append(data[data['type'] == 'best'])
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'regular']['xaxis'], data[data['type'] == 'regular']['yaxis'], alpha = 1, c = data[data['type'] == 'regular']['color'], marker = 'x', linewidth = 0.5, s = 16)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'elite']['xaxis'], data[data['type'] == 'elite']['yaxis'], alpha = 1, c = data[data['type'] == 'elite']['color'], edgecolors = 'black', marker = 'o', linewidth = 0.7, s = 24)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'final']['xaxis'], data[data['type'] == 'final']['yaxis'], alpha = 1, c = data[data['type'] == 'final']['color'], edgecolors = 'black', marker = 'D', linewidth = 0.7, s = 22)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'best']['xaxis'], data[data['type'] == 'best']['yaxis'], alpha = 1, c = data[data['type'] == 'best']['color'], edgecolors = 'black', marker = '*', linewidth = 0.7, s = 70)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'regular']['xaxis'], data[data['type'] == 'regular']['yaxis'], alpha = 1, c = data[data['type'] == 'regular']['color'], marker = 'x', linewidth = 0.5, s = 16, zorder = 3)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'elite']['xaxis'], data[data['type'] == 'elite']['yaxis'], alpha = 1, c = data[data['type'] == 'elite']['color'], edgecolors = 'black', marker = 'o', linewidth = 0.7, s = 24, zorder = 3)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'final']['xaxis'], data[data['type'] == 'final']['yaxis'], alpha = 1, c = data[data['type'] == 'final']['color'], edgecolors = 'black', marker = 'D', linewidth = 0.7, s = 22, zorder = 3)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'best']['xaxis'], data[data['type'] == 'best']['yaxis'], alpha = 1, c = data[data['type'] == 'best']['color'], edgecolors = 'black', marker = '*', linewidth = 0.7, s = 70, zorder = 3)))
         legendDescriptions.extend(['regular config.', 'elite config.', 'final elite config.', 'best found config.'])
     else:
         plotData.append(data)
-        legendElements.append(copy(plt.scatter(data['xaxis'], data['yaxis'], alpha = 1, c = data['color'], marker = 'x', linewidth = 0.5, s = 16)))
+        legendElements.append(copy(plt.scatter(data['xaxis'], data['yaxis'], alpha = 1, c = data['color'], marker = 'x', linewidth = 0.5, s = 16, zorder = 3)))
         legendDescriptions.append('regular config.')
     if showInstances:
         for element in legendElements: element.set_edgecolor('black'); element.set_facecolor('grey')
@@ -125,8 +125,8 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     for i in range(len(iterations)):
         medianRegular = mediansRegular[mediansRegular['iteration'] == iterations[i]]['median'].unique()[0]
         medianElite = mediansElite[mediansElite['iteration'] == iterations[i]]['median'].unique()[0]
-        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [medianRegular, medianRegular], linestyle = '-', color = '#FF8C00', linewidth = 1.8)
-        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [medianElite, medianElite], linestyle = '-', color = '#800080', linewidth = 1.8)
+        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [medianRegular, medianRegular], linestyle = '-', color = '#FF8C00', linewidth = 1.8, zorder = 1)
+        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [medianElite, medianElite], linestyle = '-', color = '#800080', linewidth = 1.8, zorder = 1)
     legendElements.append(mlines.Line2D([], [], color='#FF8C00', linewidth = 1.8))
     legendDescriptions.append('median iteration')
     legendElements.append(mlines.Line2D([], [], color='#800080', linewidth = 1.8))
