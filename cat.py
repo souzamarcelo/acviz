@@ -69,7 +69,7 @@ def __hover(event):
             fig.canvas.draw_idle()
 
 
-def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular):
+def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha):
     global annotations, ax, fig, plotData
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
@@ -88,14 +88,14 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
         plotData.append(data[data['type'] == 'elite'])
         plotData.append(data[data['type'] == 'final'])
         plotData.append(data[data['type'] == 'best'])
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'regular']['xaxis'], data[data['type'] == 'regular']['yaxis'], alpha = 1, c = data[data['type'] == 'regular']['color'], marker = 'x', linewidth = 0.5, s = 16, zorder = 3)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'elite']['xaxis'], data[data['type'] == 'elite']['yaxis'], alpha = 1, c = data[data['type'] == 'elite']['color'], edgecolors = 'black', marker = 'o', linewidth = 0.7, s = 24, zorder = 3)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'final']['xaxis'], data[data['type'] == 'final']['yaxis'], alpha = 1, c = data[data['type'] == 'final']['color'], edgecolors = 'black', marker = 'D', linewidth = 0.7, s = 22, zorder = 3)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'best']['xaxis'], data[data['type'] == 'best']['yaxis'], alpha = 1, c = data[data['type'] == 'best']['color'], edgecolors = 'black', marker = '*', linewidth = 0.7, s = 70, zorder = 3)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'regular']['xaxis'], data[data['type'] == 'regular']['yaxis'], alpha = alpha, c = data[data['type'] == 'regular']['color'], marker = 'x', linewidth = 0.5, s = 16, zorder = 3)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'elite']['xaxis'], data[data['type'] == 'elite']['yaxis'], alpha = min(alpha + 0.2, 1), c = data[data['type'] == 'elite']['color'], edgecolors = 'black', marker = 'o', linewidth = 0.7, s = 24, zorder = 3)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'final']['xaxis'], data[data['type'] == 'final']['yaxis'], alpha = min(alpha + 0.2, 1), c = data[data['type'] == 'final']['color'], edgecolors = 'black', marker = 'D', linewidth = 0.7, s = 22, zorder = 3)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'best']['xaxis'], data[data['type'] == 'best']['yaxis'], alpha = min(alpha + 0.2, 1), c = data[data['type'] == 'best']['color'], edgecolors = 'black', marker = '*', linewidth = 0.7, s = 70, zorder = 3)))
         legendDescriptions.extend(['regular config.', 'elite config.', 'final elite config.', 'best found config.'])
     else:
         plotData.append(data)
-        legendElements.append(copy(plt.scatter(data['xaxis'], data['yaxis'], alpha = 1, c = data['color'], marker = 'x', linewidth = 0.5, s = 16, zorder = 3)))
+        legendElements.append(copy(plt.scatter(data['xaxis'], data['yaxis'], alpha = alpha, c = data['color'], marker = 'x', linewidth = 0.5, s = 16, zorder = 3)))
         legendDescriptions.append('regular config.')
     if showInstances:
         for element in legendElements: element.set_edgecolor('black'); element.set_facecolor('grey')
@@ -108,7 +108,7 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     indexPoint = 0
     for point, restart in zip(iterationPoints, restarts):
         color = '#B71C1C' if restart else 'k'
-        line = plt.axvline(x = point, color = color, linestyle = '--', linewidth = 1.5)
+        line = plt.axvline(x = point, color = color, linestyle = '--', linewidth = 1.5, zorder = 1)
         indexPoint += 1
         if not restart and not legendRegular:
             legendElements.append(line)
@@ -120,17 +120,19 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
             legendRestart = True
     ax.set_xticks(iterationPoints + [ax.get_xlim()[1]])
 
+    '''
     iterations = data['iteration'].unique().tolist()
     iterationPoints.append(data['xaxis'].max())
     for i in range(len(iterations)):
         medianRegular = mediansRegular[mediansRegular['iteration'] == iterations[i]]['median'].unique()[0]
         medianElite = mediansElite[mediansElite['iteration'] == iterations[i]]['median'].unique()[0]
-        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [medianRegular, medianRegular], linestyle = '-', color = '#FF8C00', linewidth = 1.8, zorder = 1)
-        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [medianElite, medianElite], linestyle = '-', color = '#800080', linewidth = 1.8, zorder = 1)
+        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [medianRegular, medianRegular], linestyle = '-', color = '#FF8C00', linewidth = 1.8, zorder = 5)
+        plt.plot([iterationPoints[i], iterationPoints[i + 1]], [medianElite, medianElite], linestyle = '-', color = '#800080', linewidth = 1.8, zorder = 5)
     legendElements.append(mlines.Line2D([], [], color='#FF8C00', linewidth = 1.8))
     legendDescriptions.append('median iteration')
     legendElements.append(mlines.Line2D([], [], color='#800080', linewidth = 1.8))
     legendDescriptions.append('median elites')
+    '''
 
     if pconfig > 0:
         for iteration in iterations:
@@ -143,7 +145,7 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
             for i in range(len(x)):
                 ax.annotate(names[i], xy = (x[i], y[i]), xytext = (0, -8), textcoords = 'offset pixels', horizontalalignment = 'center', verticalalignment = 'center', fontsize = 6)
 
-    fig.legend(legendElements, legendDescriptions, loc = 'center', bbox_to_anchor = (0.5, 0.06), ncol = 4, handletextpad = 0.5, columnspacing = 1.8)
+    fig.legend(legendElements, legendDescriptions, loc = 'center', bbox_to_anchor = (0.5, 0.055), ncol = 4, handletextpad = 0.5, columnspacing = 1.8)
     ax.tick_params(axis = 'both', which = 'major', labelsize = 9)
     plt.xticks(rotation = 90)
 
@@ -371,6 +373,7 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
         instancesSoFar[-1] = np.unique(instancesSoFar[-1])
     instancesSoFar = [len(item) for item in instancesSoFar]
 
+    '''
     mediansEliteDict = {'iteration': [], 'median': []}
     mediansRegularDict = {'iteration': [], 'median': []}
     iterations = data['iteration'].unique()
@@ -404,9 +407,10 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
     mediansRegular = pd.DataFrame.from_dict(mediansRegularDict)
 
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
-  
+    '''
+    return data, restarts, instancesSoFar, overTime, [], []
 
-def getPlot(iracelog, showElites = False, showInstances = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', testResults = 'raw'):
+def getPlot(iracelog, showElites = False, showInstances = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', testResults = 'raw', alpha = 1.0):
     global plt
     if userPlt is not None: plt = userPlt 
     if testing:
@@ -414,7 +418,7 @@ def getPlot(iracelog, showElites = False, showInstances = False, pconfig = 10, s
         __plotTest(testData, firstElites, finalElites, testConfigurations, testColors, testResults)
     else:
         data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
-        __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular)
+        __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha)
     if exportData:
         if not testing:
             if not os.path.exists('./export'): os.mkdir('./export')
@@ -448,6 +452,7 @@ if __name__ == "__main__":
     optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 0)', metavar = '<p>', default = 0, type = int)
     optional.add_argument('--noinstances', help = 'enables identification of instances (disabled by default)', action = 'store_false')
     optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imp>', type = str, default = 'elite')
+    optional.add_argument('--alpha', help = 'opacity of the points, the greater the more opaque [0, 1] (default: 1)', metavar = '<alpha>', type = float, default = 1.0)
     optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
     optional.add_argument('--testcolors', help = 'option for how apply the colormap in the test plot [overall, instance] (default: instance)', default = 'instance', metavar = '<col>', type = str)
     optional.add_argument('--testresults', help = 'defines how the results should be presented in the test plot [rdev, adev, raw] (default: rdev)', default = 'rdev', metavar = '<res>', type = str)
@@ -492,6 +497,7 @@ if __name__ == "__main__":
         imputation = args.imputation,
         testing = args.testing,
         testColors = args.testcolors,
-        testResults = args.testresults
+        testResults = args.testresults,
+        alpha = args.alpha
     )
     print('-------------------------------------------------------------------------------')
