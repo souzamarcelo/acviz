@@ -76,8 +76,8 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     ax.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
     ax.set_yscale('log')
 
-    plt.xlabel('candidate evaluations' if not overTime else 'cumulative running time [in seconds]')
-    plt.ylabel('result [relative deviation]')
+    plt.xlabel('Candidate evaluations' if not overTime else 'Cumulative running time [in seconds]')
+    plt.ylabel('Relative deviation')
 
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
     data['color'] = data.apply(lambda x: colors[(x['instanceseed'] - 1) % len(colors)] if showInstances else simpleColors[x['type']] if showElites else 'black', axis = 1)
@@ -150,7 +150,7 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     ax2 = ax.twiny()
     ax2.set_xticks(iterationPoints[1:] + [ax.get_xlim()[1]])
     ax2.set_xticklabels(instancesSoFar)
-    ax2.set_xlabel('instances evaluated so far')
+    ax2.set_xlabel('Instances evaluated')
     ax2.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
     ax2.tick_params(axis = 'both', which = 'major', labelsize = 9)
     ax.set_zorder(ax2.get_zorder() + 1)
