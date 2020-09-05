@@ -232,8 +232,9 @@ def __plotTest(testData, firstElites, finalElites, testConfigurations, testColor
         plt.setp(ax.get_xticklabels(), rotation = 90, va = 'center', ha = 'right', rotation_mode = 'anchor')
         ax.set_yticks(np.arange(len(instances)))
         ax.set_yticklabels(instances)
-        [label.set_color('#5D6D7E' if label.get_text() in trainInstances else '#0000FF') for label in plt.gca().get_yticklabels()]
+        [label.set_color('#000000' if label.get_text() in trainInstances else '#0000FF') for label in plt.gca().get_yticklabels()]
         if index > 0: ax.set_yticks([])
+        ax.set_xlabel('Configuration ID (iterations it was elite)')
 
         normed = [[], []]
         if testColors == 'general':
