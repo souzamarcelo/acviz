@@ -216,7 +216,7 @@ def __plotTest(testData, firstElites, finalElites, testConfigurations, testColor
     
     fig = plt.figure('Plot testing data [cat]')
     data = dataPlot if testColors == 'general' else normPlot
-    
+
     for index in range(0, 2):
         ax = fig.add_subplot(1, 2, index + 1, label = 'plot_test')
         im = ax.imshow(data[index], cmap = 'RdYlGn_r', aspect = 'auto')
@@ -234,7 +234,6 @@ def __plotTest(testData, firstElites, finalElites, testConfigurations, testColor
         ax.set_yticklabels(instances)
         [label.set_color('#000000' if label.get_text() in trainInstances else '#0000FF') for label in plt.gca().get_yticklabels()]
         if index > 0: ax.set_yticks([])
-        ax.set_xlabel('Configuration ID (iterations it was elite)')
 
         normed = [[], []]
         if testColors == 'general':
