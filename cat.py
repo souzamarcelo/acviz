@@ -120,7 +120,6 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
             legendRestart = True
     ax.set_xticks(iterationPoints + [ax.get_xlim()[1]])
 
-    '''
     iterations = data['iteration'].unique().tolist()
     iterationPoints.append(data['xaxis'].max())
     for i in range(len(iterations)):
@@ -132,7 +131,6 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     legendDescriptions.append('median iteration')
     legendElements.append(mlines.Line2D([], [], color='#800080', linewidth = 1.8))
     legendDescriptions.append('median elites')
-    '''
 
     if pconfig > 0:
         for iteration in iterations:
@@ -373,7 +371,6 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
         instancesSoFar[-1] = np.unique(instancesSoFar[-1])
     instancesSoFar = [len(item) for item in instancesSoFar]
 
-    '''
     mediansEliteDict = {'iteration': [], 'median': []}
     mediansRegularDict = {'iteration': [], 'median': []}
     iterations = data['iteration'].unique()
@@ -407,8 +404,6 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
     mediansRegular = pd.DataFrame.from_dict(mediansRegularDict)
 
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
-    '''
-    return data, restarts, instancesSoFar, overTime, [], []
 
 def getPlot(iracelog, showElites = False, showInstances = False, pconfig = 10, showPlot = False, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', testResults = 'raw', alpha = 1.0):
     global plt
@@ -444,7 +439,7 @@ if __name__ == "__main__":
     parser._action_groups.pop()
     required = parser.add_argument_group('required arguments')
     optional = parser.add_argument_group('optional arguments')
-    required.add_argument('--iracelog', help = 'input of irace log file (.Rdata)', metavar = '<file>', required = ('--version' not in sys.argv and '-v' not in sys.argv))
+    required.add_argument('--iracelog', help = 'input of irace log file (.Rdata)', metavar = '<file>', required = False)
     optional.add_argument('-v', '--version', help = 'show description and exit', action = 'store_true')
     optional.add_argument('--overtime', help = 'plot the execution over the accumulated configuration time (disabled by default)', action = 'store_true')
     optional.add_argument('--bkv', help = 'file containing best known values for the instances used (null by default)', metavar = '<file>')
@@ -459,9 +454,11 @@ if __name__ == "__main__":
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
     optional.add_argument('--output', help = 'defines a name for the output files (default: export)', metavar = '<name>', type = str, default = 'export')
-    args = parser.parse_args()
+    args, other = parser.parse_known_args()
     if args.version: print(desc); exit()
-    if not args.iracelog: print('Invalid arguments!\nPlease input the irace log file using \'--iracelog <file>\'\n'); parser.print_help(); exit()
+    if not args.iracelog:
+        if len(other) > 0: args.iracelog = other[0]
+        else: print('Invalid arguments!\nPlease input the irace log file using \'--iracelog <file>\'\n'); parser.print_help(); exit()
     
     print(desc)
     settings = '> Settings:\n'
