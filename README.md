@@ -1,6 +1,6 @@
-# cat: Configuration Analysis Tools for irace
+# acviz: Algorithm Configuration Visualizations for irace
 
-This Python script provides a set of functions to analyze the automatic algorithm configuration process with [irace](http://iridia.ulb.ac.be/irace).
+This Python script provides a set of functions to visually analyze the automatic algorithm configuration process with [irace](http://iridia.ulb.ac.be/irace).
 
 **Maintainer:** [Marcelo de Souza](https://souzamarcelo.github.io).
 
@@ -21,14 +21,14 @@ Since irace exports the log file using the R syntax and format, you will need th
 
 ## Usage
 
-To use **cat** you need to download the `cat.py` script and run it according to the following instructions (make sure that the aforementioned dependencies were all satisfied).
+To use **acviz** you need to download the `acviz.py` script and run it according to the following instructions (make sure that the aforementioned dependencies were all satisfied).
 
 **Input:** an irace log file (typically called irace.Rdata) and optional parameters to control the plot details and the output format.
 
 **Output:** a matplotlib graphic showing the candidate evaluations.
 
 ```
-usage: cat.py [-h] --iracelog <file> [-v] [--objective <obj>] [--overtime]
+usage: acviz.py [-h] --iracelog <file> [-v] [--objective <obj>] [--overtime]
               [--bkv <file>] [--elites] [--configurations] [--pconfig <p>]
               [--instances] [--exportdata] [--exportplot] [--output <name>]
 
@@ -67,26 +67,26 @@ optional arguments:
 + `--instances`: enables the presentation of different instances used during the configuration process using colors.
 + `--exportdata`: exports the data used in csv format. The output will be saved in `./export/<name>.csv`, where `<name>` is defined using the `--output` argument.
 + `--exportplot`: exports the resulting plot in pdf and png formats. The output will be saved in `./export/<name>.pdf` and `./export/<name>.png`, where `<name>` is defined using the `--output` argument.
-  + If no value for `--output` is provided, cat will use the name of the irace log file.
+  + If no value for `--output` is provided, acviz will use the name of the irace log file.
 
 
 ## Examples
 
-The [examples](examples) directory has an irace log file example, which contains the log data of the ACOTSP algorithm configuration. To analyze it, you can call **cat** from the command line as follows:
+The [examples](examples) directory has an irace log file example, which contains the log data of the ACOTSP algorithm configuration. To analyze it, you can call **acviz** from the command line as follows:
 
 ```
-python3 cat.py --iracelog examples/acotsp.Rdata --bkv examples/acotsp-bkv.txt --elites --instances
+python3 acviz.py --iracelog examples/acotsp.Rdata --bkv examples/acotsp-bkv.txt
 ```
 
-In this case, **cat** will present the corresponding plot with each execution performed in the configuration process and the obtained relative deviations from the best known solution (logscale). Elite, final elite, and the best found configurations are presented using different markers (since `--elites` is enabled) and each instance is present in a specific color (since `--instances` is enabled). For each iteration, the plot presents the median performances (overall and of the elite candidates). Observe that in the interactive mode, a tooltip box is presented when the cursor is over some point.
+In this case, **acviz** will present the corresponding plot with each execution performed in the configuration process and the obtained relative deviations from the best known solution (logscale). Elite, final elite, and the best found configurations are presented using different markers (since `--elites` is enabled) and each instance is present in a specific color (since `--instances` is enabled). For each iteration, the plot presents the median performances (overall and of the elite candidates). Observe that in the interactive mode, a tooltip box is presented when the cursor is over some point.
 
 ![](./examples/acotsp1.gif)
 
 
-In a second example we disabled the instance highlighting (i.e. we removed the `--instances` option). In this case, executions of elite configurations are presented using different markers and colors. We can also enable the identification of configurations by using the argument `--configurations`. By setting `--pconfig 12`, **cat** will produce a plot with the 5% best executions of each iteration identified with the corresponding configuration identifier. The command is
+In a second example we disabled the instance highlighting (i.e. we removed the `--instances` option). In this case, executions of elite configurations are presented using different markers and colors. We can also enable the identification of configurations by using the argument `--configurations`. By setting `--pconfig 12`, **acviz** will produce a plot with the 5% best executions of each iteration identified with the corresponding configuration identifier. The command is
 
 ```
-python3 cat.py --iracelog examples/acotsp.Rdata --bkv examples/acotsp-bkv.txt --elites --configurations --pconfig 12
+python3 acviz.py --iracelog examples/acotsp.Rdata --bkv examples/acotsp-bkv.txt --elites --configurations --pconfig 12
 ```
 
 and the output is

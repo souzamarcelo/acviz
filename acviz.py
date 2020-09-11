@@ -15,7 +15,7 @@ from natsort import natsorted
 
 desc = '''
 -------------------------------------------------------------------------------
-| cat: Configuration Analysis Tools (CAT) for irace                           |
+| acviz: Algorithm Configuration Visualizations for irace                     |
 | Version: 1.0                                                                |
 | Copyright (C) 2020                                                          |
 | Marcelo de Souza         <marcelo.desouza@udesc.br>                         |
