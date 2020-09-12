@@ -12,6 +12,7 @@ from math import log
 from math import ceil
 from copy import copy
 from natsort import natsorted
+from statistics import median
 
 desc = '''
 -------------------------------------------------------------------------------
@@ -375,31 +376,52 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
     mediansRegularDict = {'iteration': [], 'median': []}
     iterations = data['iteration'].unique()
     for iteration in iterations:
-        eliteConfs = data[(data['iteration'] == iteration) & (data['type'] != 'regular')]['configuration'].unique()
-        nonEliteConfs = data[(data['iteration'] == iteration) & (data['type'] == 'regular')]['configuration'].unique()
-        instancesOfIteration = data[data['iteration'] <= iteration]['instanceseed'].unique()
-        execElite = data[(data['iteration'] <= iteration) & (data['configuration'].isin(eliteConfs)) & (data['instanceseed'].isin(instancesOfIteration))]
+        dataIt = data[data['iteration'] <= iteration]
+        instancesIt = dataIt['instanceseed'].unique()
+        eliteConfs = dataIt[(dataIt['iteration'] == iteration) & (dataIt['type'] != 'regular')]['configuration'].unique()
+        nonEliteConfs = dataIt[(dataIt['iteration'] == iteration) & (dataIt['type'] == 'regular')]['configuration'].unique()        
+        execElite = dataIt[(dataIt['configuration'].isin(eliteConfs)) & (dataIt['instanceseed'].isin(instancesIt))]
         execElite = execElite.groupby(['configuration', 'instanceseed'], as_index = False).agg({'yaxis': 'median'})
-        execNonElite = data[(data['iteration'] <= iteration) & (data['configuration'].isin(nonEliteConfs)) & (data['instanceseed'].isin(instancesOfIteration))]
+        execNonElite = dataIt[(dataIt['configuration'].isin(nonEliteConfs)) & (dataIt['instanceseed'].isin(instancesIt))]
         execNonElite = execNonElite.groupby(['configuration', 'instanceseed'], as_index = False).agg({'yaxis': 'median'})
-        for instanceSeed in instancesOfIteration:
-            execElitesInstance = execElite[execElite['instanceseed'] == instanceSeed]
-            execNonElitesInstance = execNonElite[execNonElite['instanceseed'] == instanceSeed]
-            if imputation == 'elite': imputationValue = data[(data['configuration'].isin(eliteConfs)) & (data['instanceseed'] == instanceSeed) & (data['iteration'] <= iteration)]['yaxis'].max()
-            elif imputation == 'alive': imputationValue = data[((data['configuration'].isin(eliteConfs)) | (data['configuration'].isin(nonEliteConfs))) & (data['instanceseed'] == instanceSeed) & (data['iteration'] <= iteration)]['yaxis'].max()
-            if not math.isnan(imputationValue):
-                for conf in eliteConfs:
-                    if len(execElitesInstance[execElitesInstance['configuration'] == conf]) == 0:
-                        execElite.loc[len(execElite)] = [conf, instanceSeed, imputationValue]
-                for conf in nonEliteConfs:
-                    if len(execNonElitesInstance[execNonElitesInstance['configuration'] == conf]) == 0:
-                        execNonElite.loc[len(execNonElite)] = [conf, instanceSeed, imputationValue]
-        execElite = execElite.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
-        execNonElite = execNonElite.groupby('configuration', as_index = False).agg({'yaxis': 'median'})
+        pairsElite = [(x, y) for x in eliteConfs for y in instancesIt]
+        pairsNonElite = [(x, y) for x in nonEliteConfs for y in instancesIt]
+        resultsElite = {}
+        resultsNonElite = {}
+        for _, row in execElite.iterrows():
+            element = (int(row['configuration']), int(row['instanceseed']))
+            resultsElite[element] = row['yaxis']
+            pairsElite.remove(element)
+        for _, row in execNonElite.iterrows():
+            element = (int(row['configuration']), int(row['instanceseed']))
+            resultsNonElite[element] = row['yaxis']
+            pairsNonElite.remove(element)
+        remInst = [x[1] for x in pairsElite] + [x[1] for x in pairsNonElite]
+        remInst = list(set(remInst))
+        imputations = {}
+        for instance in remInst:
+            if imputation == 'elite': imputationValue = data[(data['configuration'].isin(eliteConfs)) & (data['instanceseed'] == instance) & (data['iteration'] <= iteration)]['yaxis'].max()
+            elif imputation == 'alive': imputationValue = data[((data['configuration'].isin(eliteConfs)) | (data['configuration'].isin(nonEliteConfs))) & (data['instanceseed'] == instance) & (data['iteration'] <= iteration)]['yaxis'].max()            
+            imputations[instance] = imputationValue
+        for element in pairsElite:
+            resultsElite[element] = imputations[element[1]]
+        for element in pairsNonElite:
+            resultsNonElite[element] = imputations[element[1]]
+        for r in ['elite', 'nonElite']:
+            results = resultsElite if r == 'elite' else resultsNonElite
+            confResults = {}
+            for element in results:
+                if element[0] not in confResults:
+                    confResults[element[0]] = []
+                confResults[element[0]].append(results[element])
+            for element in confResults:
+                confResults[element] = median(confResults[element])
+            if r == 'elite': resultsElite = confResults
+            else: resultsNonElite = confResults
         mediansEliteDict['iteration'].append(iteration)
-        mediansEliteDict['median'].append(execElite['yaxis'].median())
+        mediansEliteDict['median'].append(median(resultsElite.values()))
         mediansRegularDict['iteration'].append(iteration)
-        mediansRegularDict['median'].append(execNonElite['yaxis'].median())
+        mediansRegularDict['median'].append(median(resultsNonElite.values()))
     mediansElite = pd.DataFrame.from_dict(mediansEliteDict)
     mediansRegular = pd.DataFrame.from_dict(mediansRegularDict)
 
