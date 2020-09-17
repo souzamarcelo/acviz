@@ -89,7 +89,7 @@ python3 acviz.py --iracelog examples/acotsp-instances.Rdata --bkv examples/bkv.t
 
 In this case, *acviz* will present the plot with each execution performed in the configuration process and the corresponding relative deviations from the best known values (in log scale). The log file is provided using option `--iracelog` and the file containing the best known values of each instance is provided using option `--bkv`.
 
-![](./examples/acotsp-instances.pdf)
+![](./examples/acotsp-instances.png)
 
 In a second example, we visualize the quality of the best found configurations on the test instances (assuming that the testing options were enabled when running irace). We include the `--testing` option in the command as follows:
 
@@ -99,4 +99,4 @@ python3 acviz.py --iracelog examples/acotsp-overtuning.Rdata --bkv examples/bkv.
 
 In this case, *acviz* will present a visualization of the results of evaluating the best found configurations (best elite of each iteration and all elites of the last iteration) on all test instances.
 
-![](./examples/acotsp-overtuning.pdf)
+![](./examples/acotsp-overtuning.png)
