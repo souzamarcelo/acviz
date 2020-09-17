@@ -4,7 +4,7 @@ This Python program provides visualizations of the automatic algorithm configura
 
 > **ACVIZ: Algorithm Configuration Visualizations for irace**<br>
 > Marcelo de Souza, Marcus Ritt, Manuel López-Ibáñez, Lelis Pérez Cáceres<br>
-> Submitted to Optimization Letters, 2020
+> Submitted to Optimization Letters, 2020<br>
 > Supplementary material available [here](https://doi.org/10.5281/zenodo.4028906).
 
 **Bibtex**
