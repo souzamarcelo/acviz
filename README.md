@@ -81,23 +81,22 @@ optional arguments:
 
 ## Examples
 
-The [examples](examples) directory has an irace log file example, which contains the log data of the ACOTSP algorithm configuration. To analyze it, you can call **acviz** from the command line as follows:
+The [examples](examples) directory contains some exemplary irace log files. To analyze the evolution of the configuration process, you can call *acviz* from the command line as follows:
 
 ```
-python3 acviz.py --iracelog examples/acotsp.Rdata --bkv examples/acotsp-bkv.txt
+python3 acviz.py --iracelog examples/acotsp-instances.Rdata --bkv examples/bkv.txt
 ```
 
-In this case, **acviz** will present the corresponding plot with each execution performed in the configuration process and the obtained relative deviations from the best known solution (logscale). Elite, final elite, and the best found configurations are presented using different markers (since `--elites` is enabled) and each instance is present in a specific color (since `--instances` is enabled). For each iteration, the plot presents the median performances (overall and of the elite candidates). Observe that in the interactive mode, a tooltip box is presented when the cursor is over some point.
+In this case, *acviz* will present the plot with each execution performed in the configuration process and the corresponding relative deviations from the best known values (in log scale). The log file is provided using option `--iracelog` and the file containing the best known values of each instance is provided using option `--bkv`.
 
-![](./examples/acotsp1.gif)
+![](./examples/acotsp-instances.pdf)
 
-
-In a second example we disabled the instance highlighting (i.e. we removed the `--instances` option). In this case, executions of elite configurations are presented using different markers and colors. We can also enable the identification of configurations by using the argument `--configurations`. By setting `--pconfig 12`, **acviz** will produce a plot with the 5% best executions of each iteration identified with the corresponding configuration identifier. The command is
+In a second example, we visualize the quality of the best found configurations on the test instances (assuming that the testing options were enabled when running irace). We include the `--testing` option in the command as follows:
 
 ```
-python3 acviz.py --iracelog examples/acotsp.Rdata --bkv examples/acotsp-bkv.txt --elites --configurations --pconfig 12
+python3 acviz.py --iracelog examples/acotsp-overtuning.Rdata --bkv examples/bkv.txt --testing
 ```
 
-and the output is
+In this case, *acviz* will present a visualization of the results of evaluating the best found configurations (best elite of each iteration and all elites of the last iteration) on all test instances.
 
-![](./examples/acotsp2.gif)
+![](./examples/acotsp-overtuning.pdf)
