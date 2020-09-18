@@ -3,7 +3,7 @@
 This Python program provides visualizations of the automatic algorithm configuration process with [irace](http://iridia.ulb.ac.be/irace). The *acviz* program is described in the following paper.
 
 > **ACVIZ: Algorithm Configuration Visualizations for irace**<br>
-> Marcelo de Souza, Marcus Ritt, Manuel López-Ibáñez, Lelis Pérez Cáceres<br>
+> Marcelo de Souza, Marcus Ritt, Manuel López-Ibáñez, Leslie Pérez Cáceres<br>
 > Submitted to Optimization Letters, 2020<br>
 > Supplementary material available [here](https://doi.org/10.5281/zenodo.4028906).
 
