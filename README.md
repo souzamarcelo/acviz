@@ -6,7 +6,7 @@ This Python program provides visualizations of the automatic algorithm configura
 
 **Bibtex**
 
-```
+```bibtex
 @article{SouzaEtAl2020acviz,
    title   = {ACVIZ: Algorithm Configuration Visualizations for irace},
    author  = {Souza, Marcelo and Ritt, Marcus and L{\'o}pez-Ib{\'a}{\~n}ez, Manuel and {P{\'e}rez C{\'a}ceres}, Leslie},
