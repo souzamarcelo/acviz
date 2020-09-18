@@ -2,7 +2,7 @@
 
 This Python program provides visualizations of the automatic algorithm configuration process with [irace](http://iridia.ulb.ac.be/irace). The *acviz* program is described in the following paper.
 
-- Marcelo de Souza, Marcus Ritt, Manuel López-Ibáñez, Leslie Pérez Cáceres. **ACVIZ: Algorithm Configuration Visualizations for irace**. Submitted to Optimization Letters, 2020. Supplementary material available [here](https://doi.org/10.5281/zenodo.4028906).
++ *Marcelo de Souza, Marcus Ritt, Manuel López-Ibáñez, Leslie Pérez Cáceres. **ACVIZ: Algorithm Configuration Visualizations for irace**. Submitted to Optimization Letters, 2020. Supplementary material available [here](https://doi.org/10.5281/zenodo.4028906).*
 
 **Bibtex**
 
@@ -39,7 +39,7 @@ Since irace exports the log file using the R syntax and format, you will need th
 
 To use *acviz* you need to download the `acviz.py` script and run it according to the following instructions (make sure that the aforementioned dependencies were all satisfied). It is possible to control several elements of the visualization, including:
 + plot executions over configuration time;
-+ disable the identification of instances and executions of elite configurations;
++ disable the identification of instances and executions of elite configurations; 
 + show the configurations associated with the best executions;
 + change the imputation strategy;
 + control the opacity of the points;
