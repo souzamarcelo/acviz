@@ -149,7 +149,7 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     plt.xticks(rotation = 90)
 
     ax2 = ax.twiny()
-    ax2.set_xticks(iterationPoints[1:] + [ax.get_xlim()[1]])
+    ax2.set_xticks(iterationPoints[1:])
     ax2.set_xticklabels(instancesSoFar)
     ax2.set_xlabel('Instances evaluated')
     ax2.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
