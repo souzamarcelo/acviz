@@ -32,6 +32,7 @@ The script requires [Python 3](https://www.python.org) and the following Python 
 + [pandas](https://pandas.pydata.org)
 + [matplotlib](https://matplotlib.org)
 + [rpy2](https://rpy2.github.io)
++ [natsort] (https://pypi.org/project/natsort)
 
 Since irace exports the log file using the R syntax and format, you will need the [R software environment](https://www.r-project.org) installed (rpy2 module will communicate with R to get the necessary data).
 
