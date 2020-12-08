@@ -98,7 +98,7 @@ def __hover(event):
 
 
 # Function __plotTraining
-def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha):
+def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse):
     """
     Plots the evolution of the configuration process.
     Arguments:
@@ -128,6 +128,13 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     # Create colors for instances
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
     data['color'] = data.apply(lambda x: colors[(x['instanceseed'] - 1) % len(colors)] if showInstances else simpleColors[x['type']] if showElites else 'black', axis = 1)
+
+    #Reverse y-axis
+    if reverse:
+        plt.gca().invert_yaxis()
+        data['yaxis'] = 1 - data['yaxis']
+        mediansRegular['median'] = 1 - mediansRegular['median']
+        mediansElite['median'] = 1 - mediansElite['median']
 
     # Create list of data and populate
     legendElements = []; legendDescriptions = []; plotData = []
@@ -179,6 +186,7 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
 
     iterations = data['iteration'].unique().tolist()
     iterationPoints.append(data['xaxis'].max())
+    
     # Create horizontal lines for the median performance of elite and non-elite configurations in each iteration
     for i in range(len(iterations)):
         medianRegular = mediansRegular[mediansRegular['iteration'] == iterations[i]]['median'].unique()[0]
@@ -190,7 +198,7 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     legendDescriptions.append('median iteration')
     legendElements.append(mlines.Line2D([], [], color='#800080', linewidth = 1.8))
     legendDescriptions.append('median elites')
-
+    
     # Identify configurations of the pconfig% best executions of each iteration
     if pconfig > 0:
         for iteration in iterations:
@@ -610,7 +618,7 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
 
 
 # Function getPlot
-def getPlot(iracelog, showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', testResults = 'raw', alpha = 1.0):
+def getPlot(iracelog, showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', testResults = 'raw', alpha = 1.0, reverse = False):
     """
     Creates a plot object, calls the corresponding functions, export
     the plot (if desired), show the plot or return the plot object.
@@ -636,6 +644,7 @@ def getPlot(iracelog, showElites = True, showInstances = True, pconfig = 0, show
         - testColors: color scheme
         - testResults: type of results to show
         - alpha: opacity of the points
+        - reverse: show y-axis reversed
     """
 
     # Definition of global variables for this function 
@@ -648,7 +657,7 @@ def getPlot(iracelog, showElites = True, showInstances = True, pconfig = 0, show
         __plotTest(testData, firstElites, finalElites, testConfigurations, testColors, testResults)
     else: # Training plot
         data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
-        __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha)
+        __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse)
     if exportData: # Export data
         if not testing:
             if not os.path.exists('./export'): os.mkdir('./export')
@@ -685,6 +694,7 @@ if __name__ == "__main__":
     optional.add_argument('--noinstances', help = 'enables identification of instances (disabled by default)', action = 'store_false')
     optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imp>', type = str, default = 'elite')
     optional.add_argument('--alpha', help = 'opacity of the points, the greater the more opaque [0, 1] (default: 1)', metavar = '<alpha>', type = float, default = 1.0)
+    optional.add_argument('--reverse', help = 'reverses y-axis (disabled by default)', action = 'store_true')
     optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
     optional.add_argument('--testcolors', help = 'option for how apply the colormap in the test plot [overall, instance] (default: instance)', default = 'instance', metavar = '<col>', type = str)
     optional.add_argument('--testresults', help = 'defines how the results should be presented in the test plot [rdev, adev, raw] (default: rdev)', default = 'rdev', metavar = '<res>', type = str)
@@ -713,12 +723,14 @@ if __name__ == "__main__":
     if args.noinstances: settings += '  - identify instances\n'
     if args.pconfig > 0: settings += '  - showing the best configurations (pconfig = %d)\n' % args.pconfig
     if args.overtime: settings += '  - plotting over time\n'
+    if args.reverse: settings += '  - plotting reversed y-axis\n'
     if args.testing: settings += '  - plotting test data\n'
     if args.testing: settings += '  - using a %s-based colormap\n' % args.testcolors
     if args.testing: settings += '  - presenting results as %s\n' % args.testresults
     if args.exportdata: settings += '  - export data to csv\n'
     if args.exportplot: settings += '  - export plot to pdf and png\n'
     if args.exportdata or args.exportplot: settings += '  - output file name: %s\n' % args.output
+
     print(settings)
     
     # Call getPlot function to build the plot
@@ -739,6 +751,7 @@ if __name__ == "__main__":
         testing = args.testing,
         testColors = args.testcolors,
         testResults = args.testresults,
-        alpha = args.alpha
+        alpha = args.alpha,
+        reverse = args.reverse
     )
     print('-------------------------------------------------------------------------------')
