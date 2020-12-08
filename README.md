@@ -1,21 +1,6 @@
 # acviz: Algorithm Configuration Visualizations for irace
 
-This Python program provides visualizations of the automatic algorithm configuration process with [irace](http://iridia.ulb.ac.be/irace). The *acviz* program is described in the following paper.
-
-+ *Marcelo de Souza, Marcus Ritt, Manuel López-Ibáñez, Leslie Pérez Cáceres. **ACVIZ: Algorithm Configuration Visualizations for irace**. Submitted to Optimization Letters, 2020. Supplementary material available [here](https://doi.org/10.5281/zenodo.4028906).*
-
-**Bibtex**
-
-```bibtex
-@article{SouzaEtAl2020acviz,
-   title   = {ACVIZ: Algorithm Configuration Visualizations for irace},
-   author  = {Souza, Marcelo and Ritt, Marcus and L{\'o}pez-Ib{\'a}{\~n}ez, Manuel and {P{\'e}rez C{\'a}ceres}, Leslie},
-   journal = {Submitted to Optimization Letters},
-   year    = {2020}
-}
-```
-
-Please, make sure to reference us if you use *acviz* in your research.
+This Python program provides visualizations of the automatic algorithm configuration process with [irace](http://iridia.ulb.ac.be/irace).
 
 ## People
 
