@@ -499,6 +499,9 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
     data['instance'] = data['instance'].map(lambda x: iraceInstances[x - 1])
     data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1:iraceInstanceNames[x - 1].rindex('.') if '.' in iraceInstanceNames[x - 1] else len(iraceInstanceNames[x - 1])])
 
+    # Consider that preliminary executions belong to the first iteration
+    data['iteration'] = data['iteration'].map(lambda x: max(x, 1))
+
     # Calculate the best known values for each instance
     data['bkv'] = float('inf')
     # Read from file, if given
@@ -606,7 +609,7 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
             else: resultsNonElite = confResults
         
         # Finally, aggregate over configurations
-        mediansEliteDict['iteration'].append(iteration)
+        mediansEliteDict['iteration'].append(iteration)        
         mediansEliteDict['median'].append(median(resultsElite.values()))
         mediansRegularDict['iteration'].append(iteration)
         mediansRegularDict['median'].append(median(resultsNonElite.values()))
