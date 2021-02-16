@@ -3,6 +3,7 @@ import os
 import sys
 import math
 import argparse
+import time
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -13,6 +14,8 @@ from math import ceil
 from copy import copy
 from natsort import natsorted
 from statistics import median
+from io import BytesIO
+from PIL import Image
 
 desc = '''
 -------------------------------------------------------------------------------
@@ -510,7 +513,7 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
         bkv['bkv'] = pd.to_numeric(bkv['bkv'], errors = 'raise')
         for instance in data['instancename'].unique().tolist():
             data.loc[data['instancename'] == instance, 'bkv'] = bkv[bkv['instancename'] == instance]['bkv'].min()
-
+t
     # Also consider the values found during the configuration process
     for instance in data['instance'].unique().tolist():
         data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
@@ -620,6 +623,85 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
 
 
+# Function monitor
+def __monitor(iracelog, showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', testResults = 'raw', alpha = 1.0, reverse = False):
+    """
+    Monitors the irace log file and generates a plot after each iteration;
+    plots are exported to a PDF file (name defined by argument 'output');
+    the arguments is the same as those of the plot function, but come of them
+    are ignored (e.g. exportData, exportPlot and testing options).
+    
+    Arguments:
+        - iracelog: irace log file
+        - showElites: indicates if executions of elite configurations must be highlighted
+        - showInstances: indicates if executions on different instances must be highlighted
+        - pconfig: percentage of the executions whose configuration is presented
+        - showPlot: defines if the plot must be shown
+        - exportData: defines if the data must be exported
+        - exportPlot: defines if the plot must be exported
+        - output: the name of the exported file
+        - bkv: file with the best known values for each instance
+        - overTime: enables the execution time in the x-axis
+        - userPlt: a plt object that can be given by an external program
+        - showToolTips: enables the tool tip boxes with information about the executions
+        - imputation: defines the imputation stratedy
+        - testing: defines if the test plot must be shown
+        - testColors: color scheme
+        - testResults: type of results to show
+        - alpha: opacity of the points
+        - reverse: show y-axis reversed
+    """
+    
+    # Definition of global variables for this function 
+    global plt
+
+    # Variables to control the monitoring process and store the plot images
+    size = -1
+    iteration = 0
+    images = []
+
+    # Delete the output file, if it already exists
+    if os.path.exists('./monitor/' + output + '.pdf'): os.remove('./monitor/' + output + '.pdf')
+
+    # Loop for monitoring the irace log file
+    while True:
+        # Current size of the log file
+        newSize = os.stat(iracelog).st_size
+        # Check wether we have modifications (different size)
+        if newSize != size:
+            size = newSize
+            # Compute current iteration
+            robjects.r['load'](iracelog)
+            newIteration = int(np.array(robjects.r('iraceResults$state$indexIteration'))[0])
+            # Check wether a new iteration begins
+            if newIteration != iteration:
+                iteration = newIteration
+                # Generate plot, wether we have at least one finished iteration
+                if iteration > 1:
+                    # Read data and generate training plot
+                    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
+                    __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse)
+                    plt.title('ITERATIONS 1 TO ' + str(iteration - 1) if (iteration - 1) != 1 else 'ITERATION ' + str(iteration - 1))
+                    fig = plt.gcf()
+                    fig.subplots_adjust(top = 0.90)
+                    # Save plot in a buffer
+                    buf = BytesIO()
+                    fig.savefig(buf, format = 'png', dpi = 300)
+                    # Read image to store in a PIL image object
+                    buf.seek(0)
+                    img = Image.open(buf).convert("RGB")
+                    # Append to the list of images
+                    images.append(img)
+                    # Update the PDF with all images
+                    images[0].save('./monitor/' + output + '.pdf', save_all = True, append_images = images[1:], quality = 100, optimize = True)
+                    # Clean plot object for the next plot
+                    plt.clf()
+                    # Log progress
+                    print('> Update output (./monitor/' + output + '.pdf), including visualization of iteration ' + str(iteration - 1) + '.')
+        # Wait 1s until the next iteration
+        time.sleep(1)
+
+
 # Function getPlot
 def getPlot(iracelog, showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', testResults = 'raw', alpha = 1.0, reverse = False):
     """
@@ -654,7 +736,7 @@ def getPlot(iracelog, showElites = True, showInstances = True, pconfig = 0, show
     global plt
 
     # Use the plt object, if given
-    if userPlt is not None: plt = userPlt 
+    if userPlt is not None: plt = userPlt
     if testing: # Test plot
         testData, firstElites, finalElites, testConfigurations = __readTest(iracelog, bkv, testResults)
         __plotTest(testData, firstElites, finalElites, testConfigurations, testColors, testResults)
@@ -704,6 +786,7 @@ if __name__ == "__main__":
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
     optional.add_argument('--output', help = 'defines a name for the output files (default: export)', metavar = '<name>', type = str, default = 'export')
+    optional.add_argument('--monitor', help = 'monitors the irace log file during irace execution; produces one plot for each iteration (disabled by default)', action = 'store_true')
     args, other = parser.parse_known_args()
     
     # Print version
@@ -719,6 +802,7 @@ if __name__ == "__main__":
     # Print settings of this execution
     settings = '> Settings:\n'
     settings += '  - plot evolution of the configuration process\n'
+    if args.monitor: settings += '  - executing in monitor mode\n'
     settings += '  - irace log file: ' + args.iracelog + '\n'
     settings += '  - imputation strategy: ' + args.imputation + '\n'
     if args.bkv is not None: settings += '  - bkv file: ' + str(args.bkv) + '\n'
@@ -736,8 +820,10 @@ if __name__ == "__main__":
 
     print(settings)
     
-    # Call getPlot function to build the plot
-    getPlot(
+    # Verify which function has to be called
+    call = __monitor if args.monitor else getPlot
+    # Call function
+    call(
         iracelog = args.iracelog,
         showElites = args.noelites,
         showInstances = args.noinstances,
