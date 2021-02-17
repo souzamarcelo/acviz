@@ -101,11 +101,12 @@ def __hover(event):
 
 
 # Function __plotTraining
-def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse):
+def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse, logScale):
     """
     Plots the evolution of the configuration process.
     Arguments:
         - data: all data from the irace log file
+        - typeResult: type of results to show
         - restarts: list that tells whether a restart was made in each iteration
         - showElites: indicates if executions of elite configurations must be highlighted
         - showInstances: indicates if executions on different instances must be highlighted
@@ -116,6 +117,7 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
         - mediansElite: list with the median performance of elite configurations in each iteration
         - mediansRegular: list with the median performance of non-elite configurations in each iteration
         - alpha: opacity of the points
+        - logScale: enables logscale
     """
 
     # Definition of global variables for this function
@@ -124,9 +126,14 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
     fig = plt.figure('Plot evolution [cat]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
     ax.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
-    ax.set_yscale('log')
+    if logScale: ax.set_yscale('log')
     plt.xlabel('Candidate evaluations' if not overTime else 'Cumulative running time [in seconds]')
-    plt.ylabel('Relative deviation')
+    
+    # Define y label according to the type of results
+    if typeResult == 'rdev': plt.ylabel('Relative deviation')
+    elif typeResult == 'adev': plt.ylabel('Absolute deviation')
+    else: plt.ylabel('Raw value')
+
 
     # Create colors for instances
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
@@ -239,16 +246,16 @@ def __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime,
 
 
 # Function __plotTest
-def __plotTest(testData, firstElites, finalElites, testConfigurations, testColors, testsResults):
+def __plotTest(testData, typeResult, firstElites, finalElites, testConfigurations, testColors):
     """
     Plots the performance of the best found configurations on the test instances, if test data available.
     Arguments:
         - testData: the test data from the irace log file
+        - typeResult: type of results to show
         - firstElites: the first ranked elite configurations of each iteration
         - finalElites: all elite configurations of the final iteration
         - testConfigurations: list with the IDs of the tested configurations
         - testColors: color scheme
-        - testResults: type of results to show
     """
 
     # Get list of training and test instances
@@ -314,7 +321,7 @@ def __plotTest(testData, firstElites, finalElites, testConfigurations, testColor
         normPlot[0][i] = [(value - min(dataPlot[0][i])) / (max(dataPlot[0][i]) + addMax[0] - min(dataPlot[0][i])) for value in dataPlot[0][i]]
         normPlot[1][i] = [(value - min(dataPlot[1][i])) / (max(dataPlot[1][i]) + addMax[1] - min(dataPlot[1][i])) for value in dataPlot[1][i]]
     # Create titles
-    titles = ['Mean raw values' if testsResults == 'raw' else 'Mean relative deviations' if testsResults == 'rdev' else 'Mean absolute deviations', 'Ranks by instance']
+    titles = ['Mean raw values' if typeResult == 'raw' else 'Mean relative deviations' if typeResult == 'rdev' else 'Mean absolute deviations', 'Ranks by instance']
     
     # Create figure and set data according to the color scheme
     fig = plt.figure('Plot testing data [cat]')
@@ -373,13 +380,13 @@ def __plotTest(testData, firstElites, finalElites, testConfigurations, testColor
 
 
 # Function __readTest
-def __readTest(iracelog, bkvFile, testResults):
+def __readTest(iracelog, typeResult, bkvFile):
     """
     Reads the test data from the irace log file.
     Arguments:
         - iracelog: irace log file
+        - typeResult: type of results to show
         - bkvFile: file with the best known values for each instance
-        - testResults: type of results to show
     """
 
     # Load the R object from the irace log file
@@ -442,22 +449,24 @@ def __readTest(iracelog, bkvFile, testResults):
     testData['bkv'] = testData['bkv'].map(lambda x: x if x != 0 else 0.000001)
     
     # Calculate values to plot according to result type
-    if testResults == 'rdev': testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
-    elif testResults == 'adev': testData['yaxis'] = abs(testData['result'] - testData['bkv'])
+    if typeResult == 'rdev': testData['yaxis'] = abs(1 - (testData['result'] / testData['bkv']))
+    elif typeResult == 'adev': testData['yaxis'] = abs(testData['result'] - testData['bkv'])
     else: testData['yaxis'] = testData['result']
 
     return testData, firstElites, finalElites, testConfigurations
 
 
 # Function __readTraining
-def __readTraining(iracelog, bkvFile, overTime, imputation):
+def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale):
     """
     Reads the training data from the irace log file.
     Arguments:
         - iracelog: irace log file
+        - typeResult: type of results to show
         - bkvFile: file with the best known values for each instance
         - overTime: enables the execution time in the x-axis
-        - imputation: defines the imputation stratedy
+        - imputation: defines the imputation strategy
+        - logScale: enables logscale
     """
 
     # Load the R object from the irace log file
@@ -519,13 +528,17 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
         data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
     
     # Remove zeros
-    data['value'] = data['value'].map(lambda x: x if x != 0 else 0.000001)
-    data['bkv'] = data['bkv'].map(lambda x: x if x != 0 else 0.000001)
-    
-    # Determine the values to be presented: relative deviations
-    data['yaxis'] = abs(1 - (data['value'] / data['bkv']))
+    if typeResult == 'rdev':
+        data['value'] = data['value'].map(lambda x: x if x != 0 else 0.000001)
+        data['bkv'] = data['bkv'].map(lambda x: x if x != 0 else 0.000001)
+
+    # Calculate values to plot according to result type
+    if typeResult == 'rdev': data['yaxis'] = abs(1 - (data['value'] / data['bkv']))
+    elif typeResult == 'adev': data['yaxis'] = abs(data['value'] - data['bkv'])
+    else: data['yaxis'] = data['value']
+
     # Avoid zeros
-    data.loc[data['yaxis'] == 0, 'yaxis'] = data[data['yaxis'] > 0]['yaxis'].min() / 2
+    if logScale: data.loc[data['yaxis'] == 0, 'yaxis'] = data[data['yaxis'] > 0]['yaxis'].min() / 2
 
     # Check whether iterations performed a restart
     restarts = [bool(item) for item in np.array(robjects.r('iraceResults$softRestart'))]
@@ -624,7 +637,7 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
 
 
 # Function monitor
-def __monitor(iracelog, showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', testResults = 'raw', alpha = 1.0, reverse = False):
+def __monitor(iracelog, typeResult = 'rdev', showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', alpha = 1.0, reverse = False, logScale = True):
     """
     Monitors the irace log file and generates a plot after each iteration;
     plots are exported to a PDF file (name defined by argument 'output');
@@ -633,6 +646,7 @@ def __monitor(iracelog, showElites = True, showInstances = True, pconfig = 0, sh
     
     Arguments:
         - iracelog: irace log file
+        - typeResult: type of results to show
         - showElites: indicates if executions of elite configurations must be highlighted
         - showInstances: indicates if executions on different instances must be highlighted
         - pconfig: percentage of the executions whose configuration is presented
@@ -647,9 +661,9 @@ def __monitor(iracelog, showElites = True, showInstances = True, pconfig = 0, sh
         - imputation: defines the imputation stratedy
         - testing: defines if the test plot must be shown
         - testColors: color scheme
-        - testResults: type of results to show
         - alpha: opacity of the points
         - reverse: show y-axis reversed
+        - logScale: enables logscale
     """
     
     # Definition of global variables for this function 
@@ -703,7 +717,7 @@ def __monitor(iracelog, showElites = True, showInstances = True, pconfig = 0, sh
 
 
 # Function getPlot
-def getPlot(iracelog, showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', testResults = 'raw', alpha = 1.0, reverse = False):
+def getPlot(iracelog, typeResult = 'rdev', showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', alpha = 1.0, reverse = False, logScale = True):
     """
     Creates a plot object, calls the corresponding functions, export
     the plot (if desired), show the plot or return the plot object.
@@ -713,6 +727,7 @@ def getPlot(iracelog, showElites = True, showInstances = True, pconfig = 0, show
 
     Arguments:
         - iracelog: irace log file
+        - typeResult: type of results to show
         - showElites: indicates if executions of elite configurations must be highlighted
         - showInstances: indicates if executions on different instances must be highlighted
         - pconfig: percentage of the executions whose configuration is presented
@@ -727,9 +742,9 @@ def getPlot(iracelog, showElites = True, showInstances = True, pconfig = 0, show
         - imputation: defines the imputation stratedy
         - testing: defines if the test plot must be shown
         - testColors: color scheme
-        - testResults: type of results to show
         - alpha: opacity of the points
         - reverse: show y-axis reversed
+        - logScale: enables logscale
     """
 
     # Definition of global variables for this function 
@@ -738,11 +753,11 @@ def getPlot(iracelog, showElites = True, showInstances = True, pconfig = 0, show
     # Use the plt object, if given
     if userPlt is not None: plt = userPlt
     if testing: # Test plot
-        testData, firstElites, finalElites, testConfigurations = __readTest(iracelog, bkv, testResults)
-        __plotTest(testData, firstElites, finalElites, testConfigurations, testColors, testResults)
+        testData, firstElites, finalElites, testConfigurations = __readTest(iracelog, typeResult, bkv)
+        __plotTest(testData, typeResult, firstElites, finalElites, testConfigurations, testColors)
     else: # Training plot
-        data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
-        __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse)
+        data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, typeResult, bkv, overTime, imputation, logScale)
+        __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse, logScale)
     if exportData: # Export data
         if not testing:
             if not os.path.exists('./export'): os.mkdir('./export')
@@ -773,16 +788,17 @@ if __name__ == "__main__":
     required.add_argument('--iracelog', help = 'input of irace log file (.Rdata)', metavar = '<file>', required = False)
     optional.add_argument('-v', '--version', help = 'show description and exit', action = 'store_true')
     optional.add_argument('--overtime', help = 'plot the execution over the accumulated configuration time (disabled by default)', action = 'store_true')
+    optional.add_argument('--typeresult', help = 'defines how the results should be presented in training or test plot [rdev, adev, raw] (default: rdev)', default = 'rdev', metavar = '<res>', type = str)
     optional.add_argument('--bkv', help = 'file containing best known values for the instances used (null by default)', metavar = '<file>')
-    optional.add_argument('--noelites', help = 'enables identification of elite configurations (disabled by default)', action = 'store_false')
+    optional.add_argument('--scale', help = 'defines the strategy for the scale of y-axis of the training plot [log, raw] (default: log)', metavar = '<s>', type = str, default = 'log')
+    optional.add_argument('--noelites', help = 'disables identification of elite configurations (disabled by default)', action = 'store_false')
     optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 0)', metavar = '<p>', default = 0, type = int)
-    optional.add_argument('--noinstances', help = 'enables identification of instances (disabled by default)', action = 'store_false')
+    optional.add_argument('--noinstances', help = 'disables identification of instances (disabled by default)', action = 'store_false')
     optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imp>', type = str, default = 'elite')
     optional.add_argument('--alpha', help = 'opacity of the points, the greater the more opaque [0, 1] (default: 1)', metavar = '<alpha>', type = float, default = 1.0)
     optional.add_argument('--reverse', help = 'reverses y-axis (disabled by default)', action = 'store_true')
     optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
     optional.add_argument('--testcolors', help = 'option for how apply the colormap in the test plot [overall, instance] (default: instance)', default = 'instance', metavar = '<col>', type = str)
-    optional.add_argument('--testresults', help = 'defines how the results should be presented in the test plot [rdev, adev, raw] (default: rdev)', default = 'rdev', metavar = '<res>', type = str)
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
     optional.add_argument('--exportplot', help = 'exports the resulting plot to png and pdf files (disabled by default)', action = 'store_true')
     optional.add_argument('--output', help = 'defines a name for the output files (default: export)', metavar = '<name>', type = str, default = 'export')
@@ -804,8 +820,10 @@ if __name__ == "__main__":
     settings += '  - plot evolution of the configuration process\n'
     if args.monitor: settings += '  - executing in monitor mode\n'
     settings += '  - irace log file: ' + args.iracelog + '\n'
+    settings += '  - type of results: ' + args.typeresult + '\n'
     settings += '  - imputation strategy: ' + args.imputation + '\n'
     if args.bkv is not None: settings += '  - bkv file: ' + str(args.bkv) + '\n'
+    if (not args.testing) and args.scale == 'log': settings += '  - plotting in logscale\n'
     if args.noelites: settings += '  - show elite configurations\n'
     if args.noinstances: settings += '  - identify instances\n'
     if args.pconfig > 0: settings += '  - showing the best configurations (pconfig = %d)\n' % args.pconfig
@@ -813,7 +831,6 @@ if __name__ == "__main__":
     if args.reverse: settings += '  - plotting reversed y-axis\n'
     if args.testing: settings += '  - plotting test data\n'
     if args.testing: settings += '  - using a %s-based colormap\n' % args.testcolors
-    if args.testing: settings += '  - presenting results as %s\n' % args.testresults
     if args.exportdata: settings += '  - export data to csv\n'
     if args.exportplot: settings += '  - export plot to pdf and png\n'
     if args.exportdata or args.exportplot: settings += '  - output file name: %s\n' % args.output
@@ -825,6 +842,7 @@ if __name__ == "__main__":
     # Call function
     call(
         iracelog = args.iracelog,
+        typeResult = args.typeresult,
         showElites = args.noelites,
         showInstances = args.noinstances,
         pconfig = args.pconfig,
@@ -839,8 +857,8 @@ if __name__ == "__main__":
         imputation = args.imputation,
         testing = args.testing,
         testColors = args.testcolors,
-        testResults = args.testresults,
         alpha = args.alpha,
-        reverse = args.reverse
+        reverse = args.reverse,
+        logScale = (args.scale == 'log')
     )
     print('-------------------------------------------------------------------------------')
