@@ -513,7 +513,7 @@ def __readTraining(iracelog, bkvFile, overTime, imputation):
         bkv['bkv'] = pd.to_numeric(bkv['bkv'], errors = 'raise')
         for instance in data['instancename'].unique().tolist():
             data.loc[data['instancename'] == instance, 'bkv'] = bkv[bkv['instancename'] == instance]['bkv'].min()
-t
+
     # Also consider the values found during the configuration process
     for instance in data['instance'].unique().tolist():
         data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
