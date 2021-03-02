@@ -123,7 +123,7 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
     # Definition of global variables for this function
     global annotations, ax, fig, plotData
     # Create figure; add unique subplot; set limits and log scale; set axis labels
-    fig = plt.figure('Plot evolution [cat]')
+    fig = plt.figure('Plot evolution [acviz]')
     ax = fig.add_subplot(1, 1, 1, label = 'plot_evolution')
     ax.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
     if logScale: ax.set_yscale('log')
@@ -324,7 +324,7 @@ def __plotTest(testData, typeResult, firstElites, finalElites, testConfiguration
     titles = ['Mean raw values' if typeResult == 'raw' else 'Mean relative deviations' if typeResult == 'rdev' else 'Mean absolute deviations', 'Ranks by instance']
     
     # Create figure and set data according to the color scheme
-    fig = plt.figure('Plot testing data [cat]')
+    fig = plt.figure('Plot testing data [acviz]')
     data = dataPlot if testColors == 'general' else normPlot
 
     # Execute routines for both subplots
