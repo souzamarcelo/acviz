@@ -153,7 +153,7 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
         data['yaxis'] = data['yaxis'].map(lambda x : float('inf') if x >= timeLimit else x)
         minv = data['yaxis'].min()
         maxv = data[data['yaxis'] < float('inf')]['yaxis'].max()
-        cutv = maxv + 0.2 * (maxv - minv)
+        cutv = maxv + 0.3 * (maxv - minv)
         data['yaxis'] = data['yaxis'].map(lambda x : cutv if x == float('inf') else x)
 
     # Create list of data and populate
@@ -172,7 +172,7 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
     else:
         # Otherwise, all executions have the same marker
         plotData.append(data)
-        legendElements.append(copy(plt.scatter(data['xaxis'], data['yaxis'], alpha = alpha, c = data['color'], marker = 'x', linewidth = 0.5, s = 16, zorder = 3)))
+        legendElements.append(copy(plt.scatter(data['xaxis'], data['yaxis'], alpha = alpha, c = data['color'], marker = 'x', linewidth = 0.5, s = 16, zorder = 3, clip_on = False)))
         legendDescriptions.append('execution')
     if showInstances:
         for element in legendElements: element.set_edgecolor('black'); element.set_facecolor('grey')
@@ -185,7 +185,7 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
             yticks = [int(x) for x in yticks]
         ylabels = [str(x) for x in yticks]
         yticks.append(cutv)
-        ylabels.append('$\\geq TL$')
+        ylabels.append('$\\geq$TL')
         plt.yticks(yticks, ylabels)
         ax.set_ylim(bottom = ymin, top = cutv)
 
