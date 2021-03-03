@@ -101,7 +101,7 @@ def __hover(event):
 
 
 # Function __plotTraining
-def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse, logScale):
+def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse, logScale, timeLimit):
     """
     Plots the evolution of the configuration process.
     Arguments:
@@ -118,6 +118,7 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
         - mediansRegular: list with the median performance of non-elite configurations in each iteration
         - alpha: opacity of the points
         - logScale: enables logscale
+        - timeLimit: defines the time limit when plotting running times
     """
 
     # Definition of global variables for this function
@@ -133,8 +134,7 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
     if typeResult == 'rdev': plt.ylabel('Relative deviation')
     elif typeResult == 'adev': plt.ylabel('Absolute deviation')
     else: plt.ylabel('Raw value')
-
-
+    
     # Create colors for instances
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
     data['color'] = data.apply(lambda x: colors[(x['instanceseed'] - 1) % len(colors)] if showInstances else simpleColors[x['type']] if showElites else 'black', axis = 1)
@@ -146,6 +146,16 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
         mediansRegular['median'] = 1 - mediansRegular['median']
         mediansElite['median'] = 1 - mediansElite['median']
 
+    # Check whether plotting runnning times with time limits
+    plotLimit = (typeResult == 'raw' and not logScale and timeLimit > 0)
+    if plotLimit:
+        # If so, configure executions exceeding the time limit
+        data['yaxis'] = data['yaxis'].map(lambda x : float('inf') if x >= timeLimit else x)
+        minv = data['yaxis'].min()
+        maxv = data[data['yaxis'] < float('inf')]['yaxis'].max()
+        cutv = maxv + 0.2 * (maxv - minv)
+        data['yaxis'] = data['yaxis'].map(lambda x : cutv if x == float('inf') else x)
+
     # Create list of data and populate
     legendElements = []; legendDescriptions = []; plotData = []
     if showElites:
@@ -154,10 +164,10 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
         plotData.append(data[data['type'] == 'elite'])
         plotData.append(data[data['type'] == 'final'])
         plotData.append(data[data['type'] == 'best'])
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'regular']['xaxis'], data[data['type'] == 'regular']['yaxis'], alpha = alpha, c = data[data['type'] == 'regular']['color'], marker = 'x', linewidth = 0.5, s = 16, zorder = 3)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'elite']['xaxis'], data[data['type'] == 'elite']['yaxis'], alpha = min(alpha + 0.2, 1), c = data[data['type'] == 'elite']['color'], edgecolors = 'black', marker = 'o', linewidth = 0.7, s = 24, zorder = 3)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'final']['xaxis'], data[data['type'] == 'final']['yaxis'], alpha = min(alpha + 0.2, 1), c = data[data['type'] == 'final']['color'], edgecolors = 'black', marker = 'D', linewidth = 0.7, s = 22, zorder = 3)))
-        legendElements.append(copy(plt.scatter(data[data['type'] == 'best']['xaxis'], data[data['type'] == 'best']['yaxis'], alpha = min(alpha + 0.2, 1), c = data[data['type'] == 'best']['color'], edgecolors = 'black', marker = '*', linewidth = 0.7, s = 70, zorder = 3)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'regular']['xaxis'], data[data['type'] == 'regular']['yaxis'], alpha = alpha, c = data[data['type'] == 'regular']['color'], marker = 'x', linewidth = 0.5, s = 16, zorder = 3, clip_on = False)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'elite']['xaxis'], data[data['type'] == 'elite']['yaxis'], alpha = min(alpha + 0.2, 1), c = data[data['type'] == 'elite']['color'], edgecolors = 'black', marker = 'o', linewidth = 0.7, s = 24, zorder = 3, clip_on = False)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'final']['xaxis'], data[data['type'] == 'final']['yaxis'], alpha = min(alpha + 0.2, 1), c = data[data['type'] == 'final']['color'], edgecolors = 'black', marker = 'D', linewidth = 0.7, s = 22, zorder = 3, clip_on = False)))
+        legendElements.append(copy(plt.scatter(data[data['type'] == 'best']['xaxis'], data[data['type'] == 'best']['yaxis'], alpha = min(alpha + 0.2, 1), c = data[data['type'] == 'best']['color'], edgecolors = 'black', marker = '*', linewidth = 0.7, s = 70, zorder = 3, clip_on = False)))
         legendDescriptions.extend(['regular config.', 'elite config.', 'final elite config.', 'best found config.'])
     else:
         # Otherwise, all executions have the same marker
@@ -166,6 +176,18 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
         legendDescriptions.append('execution')
     if showInstances:
         for element in legendElements: element.set_edgecolor('black'); element.set_facecolor('grey')
+
+    # Add label and adjust y limits; exceeding executions are positioned in the top of the plotting area
+    if plotLimit:
+        ymin, _ = ax.get_ylim()
+        yticks = list(plt.yticks()[0])
+        if all([(x == 0) or (x % int(x) == 0) for x in yticks]):
+            yticks = [int(x) for x in yticks]
+        ylabels = [str(x) for x in yticks]
+        yticks.append(cutv)
+        ylabels.append('$\\geq TL$')
+        plt.yticks(yticks, ylabels)
+        ax.set_ylim(bottom = ymin, top = cutv)
 
     # Create hidden annotations object for being used in the tool tip boxes
     annotations = ax.annotate('', xy = (0, 0), xytext = (0, 20), textcoords = 'offset points', bbox = dict(boxstyle = 'round'), ha = 'left')
@@ -637,7 +659,7 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
 
 
 # Function monitor
-def __monitor(iracelog, typeResult = 'rdev', showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', alpha = 1.0, reverse = False, logScale = True):
+def __monitor(iracelog, typeResult = 'rdev', showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', alpha = 1.0, reverse = False, logScale = True, timeLimit = 0):
     """
     Monitors the irace log file and generates a plot after each iteration;
     plots are exported to a PDF file (name defined by argument 'output');
@@ -664,6 +686,7 @@ def __monitor(iracelog, typeResult = 'rdev', showElites = True, showInstances = 
         - alpha: opacity of the points
         - reverse: show y-axis reversed
         - logScale: enables logscale
+        - timeLimit: defines the time limit when plotting running times
     """
     
     # Definition of global variables for this function 
@@ -694,7 +717,7 @@ def __monitor(iracelog, typeResult = 'rdev', showElites = True, showInstances = 
                 if iteration > 1:
                     # Read data and generate training plot
                     data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
-                    __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse)
+                    __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse, timeLimit)
                     plt.title('ITERATIONS 1 TO ' + str(iteration - 1) if (iteration - 1) != 1 else 'ITERATION ' + str(iteration - 1))
                     fig = plt.gcf()
                     fig.subplots_adjust(top = 0.90)
@@ -717,7 +740,7 @@ def __monitor(iracelog, typeResult = 'rdev', showElites = True, showInstances = 
 
 
 # Function getPlot
-def getPlot(iracelog, typeResult = 'rdev', showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', alpha = 1.0, reverse = False, logScale = True):
+def getPlot(iracelog, typeResult = 'rdev', showElites = True, showInstances = True, pconfig = 0, showPlot = True, exportData = False, exportPlot = False, output = 'output', bkv = None, overTime = False, userPlt = None, showToolTips = True, imputation = 'elite', testing = False, testColors = 'instance', alpha = 1.0, reverse = False, logScale = True, timeLimit = 0):
     """
     Creates a plot object, calls the corresponding functions, export
     the plot (if desired), show the plot or return the plot object.
@@ -745,6 +768,7 @@ def getPlot(iracelog, typeResult = 'rdev', showElites = True, showInstances = Tr
         - alpha: opacity of the points
         - reverse: show y-axis reversed
         - logScale: enables logscale
+        - timeLimit: defines the time limit when plotting running times
     """
 
     # Definition of global variables for this function 
@@ -757,7 +781,7 @@ def getPlot(iracelog, typeResult = 'rdev', showElites = True, showInstances = Tr
         __plotTest(testData, typeResult, firstElites, finalElites, testConfigurations, testColors)
     else: # Training plot
         data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, typeResult, bkv, overTime, imputation, logScale)
-        __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse, logScale)
+        __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse, logScale, timeLimit)
     if exportData: # Export data
         if not testing:
             if not os.path.exists('./export'): os.mkdir('./export')
@@ -792,10 +816,11 @@ if __name__ == "__main__":
     optional.add_argument('--bkv', help = 'file containing best known values for the instances used (null by default)', metavar = '<file>')
     optional.add_argument('--scale', help = 'defines the strategy for the scale of y-axis of the training plot [log, raw] (default: log)', metavar = '<s>', type = str, default = 'log')
     optional.add_argument('--noelites', help = 'disables identification of elite configurations (disabled by default)', action = 'store_false')
-    optional.add_argument('--pconfig', help = 'when --configurations, show configurations of the p%% best executions [0, 100] (default: 0)', metavar = '<p>', default = 0, type = int)
+    optional.add_argument('--pconfig', help = 'show configurations of the p%% best executions [0, 100] (default: 0)', metavar = '<p>', default = 0, type = int)
     optional.add_argument('--noinstances', help = 'disables identification of instances (disabled by default)', action = 'store_false')
     optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imp>', type = str, default = 'elite')
     optional.add_argument('--alpha', help = 'opacity of the points, the greater the more opaque [0, 1] (default: 1)', metavar = '<alpha>', type = float, default = 1.0)
+    optional.add_argument('--timelimit', help = 'when plotting running times (raw values and raw scale), executions with value greater than or equal to <tl> will be considered as not solved (NS) and presented accordingly (default: 0 [disabled])', metavar = '<tl>', default = 0, type = int)
     optional.add_argument('--reverse', help = 'reverses y-axis (disabled by default)', action = 'store_true')
     optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
     optional.add_argument('--testcolors', help = 'option for how apply the colormap in the test plot [overall, instance] (default: instance)', default = 'instance', metavar = '<col>', type = str)
@@ -827,6 +852,7 @@ if __name__ == "__main__":
     if args.noelites: settings += '  - show elite configurations\n'
     if args.noinstances: settings += '  - identify instances\n'
     if args.pconfig > 0: settings += '  - showing the best configurations (pconfig = %d)\n' % args.pconfig
+    if args.timelimit > 0: settings += '  - using time limit: %d\n' % args.timelimit
     if args.overtime: settings += '  - plotting over time\n'
     if args.reverse: settings += '  - plotting reversed y-axis\n'
     if args.testing: settings += '  - plotting test data\n'
@@ -859,6 +885,7 @@ if __name__ == "__main__":
         testColors = args.testcolors,
         alpha = args.alpha,
         reverse = args.reverse,
-        logScale = (args.scale == 'log')
+        logScale = (args.scale == 'log'),
+        timeLimit = max(args.timelimit, 0)
     )
     print('-------------------------------------------------------------------------------')
