@@ -133,7 +133,7 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
     # Define y label according to the type of results
     if typeResult == 'rdev': plt.ylabel('Relative deviation')
     elif typeResult == 'adev': plt.ylabel('Absolute deviation')
-    else: plt.ylabel('Raw value')
+    else: plt.ylabel('Absolute value')
     
     # Create colors for instances
     simpleColors = {'regular': '#202020', 'elite': 'blue', 'final': 'red', 'best': 'green'}
@@ -147,7 +147,7 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
         mediansElite['median'] = 1 - mediansElite['median']
 
     # Check whether plotting runnning times with time limits
-    plotLimit = (typeResult == 'raw' and not logScale and timeLimit > 0)
+    plotLimit = (typeResult == 'aval' and not logScale and timeLimit > 0)
     if plotLimit:
         # If so, configure executions exceeding the time limit
         data['yaxis'] = data['yaxis'].map(lambda x : float('inf') if x >= timeLimit else x)
@@ -343,7 +343,7 @@ def __plotTest(testData, typeResult, firstElites, finalElites, testConfiguration
         normPlot[0][i] = [(value - min(dataPlot[0][i])) / (max(dataPlot[0][i]) + addMax[0] - min(dataPlot[0][i])) for value in dataPlot[0][i]]
         normPlot[1][i] = [(value - min(dataPlot[1][i])) / (max(dataPlot[1][i]) + addMax[1] - min(dataPlot[1][i])) for value in dataPlot[1][i]]
     # Create titles
-    titles = ['Mean raw values' if typeResult == 'raw' else 'Mean relative deviations' if typeResult == 'rdev' else 'Mean absolute deviations', 'Ranks by instance']
+    titles = ['Mean absolute values' if typeResult == 'aval' else 'Mean relative deviations' if typeResult == 'rdev' else 'Mean absolute deviations', 'Ranks by instance']
     
     # Create figure and set data according to the color scheme
     fig = plt.figure('Plot testing data [acviz]')
@@ -811,16 +811,16 @@ if __name__ == "__main__":
     optional = parser.add_argument_group('optional arguments')
     required.add_argument('--iracelog', help = 'input of irace log file (.Rdata)', metavar = '<file>', required = False)
     optional.add_argument('-v', '--version', help = 'show description and exit', action = 'store_true')
-    optional.add_argument('--typeresult', help = 'defines how the results should be presented in training or test plot [rdev, adev, raw] (default: rdev)', default = 'rdev', metavar = '<res>', type = str)
+    optional.add_argument('--typeresult', help = 'defines how the results should be presented in training or test plot [aval, adev, rdev] (default: rdev)', default = 'rdev', metavar = '<res>', type = str)
     optional.add_argument('--bkv', help = 'file containing best known values for the instances used (null by default)', metavar = '<file>')
     optional.add_argument('--imputation', help = 'imputation strategy for computing medians [elite, alive] (default: elite)', metavar = '<imp>', type = str, default = 'elite')
-    optional.add_argument('--scale', help = 'defines the strategy for the scale of y-axis of the training plot [log, raw] (default: log)', metavar = '<s>', type = str, default = 'log')
+    optional.add_argument('--scale', help = 'defines the strategy for the scale of y-axis of the training plot [log, lin] (default: log)', metavar = '<s>', type = str, default = 'log')
     optional.add_argument('--noelites', help = 'disables identification of elite configurations (disabled by default)', action = 'store_false')
     optional.add_argument('--noinstances', help = 'disables identification of instances (disabled by default)', action = 'store_false')
     optional.add_argument('--pconfig', help = 'show configurations of the p%% best executions [0, 100] (default: 0)', metavar = '<p>', default = 0, type = int)
     optional.add_argument('--overtime', help = 'plot the execution over the accumulated configuration time (disabled by default)', action = 'store_true')
     optional.add_argument('--alpha', help = 'opacity of the points, the greater the more opaque [0, 1] (default: 1)', metavar = '<alpha>', type = float, default = 1.0)
-    optional.add_argument('--timelimit', help = 'when plotting running times (raw values and raw scale), executions with value greater than or equal to <tl> will be considered as not solved (NS) and presented accordingly (default: 0 [disabled])', metavar = '<tl>', default = 0, type = int)
+    optional.add_argument('--timelimit', help = 'when plotting running times (absolute values and linear scale), executions with value greater than or equal to <tl> will be considered as not solved (NS) and presented accordingly (default: 0 [disabled])', metavar = '<tl>', default = 0, type = int)
     optional.add_argument('--testing', help = 'plots the testing data instead of the configuration process (disabled by default)', action = 'store_true')
     optional.add_argument('--testcolors', help = 'option for how apply the colormap in the test plot [overall, instance] (default: instance)', default = 'instance', metavar = '<col>', type = str)
     optional.add_argument('--exportdata', help = 'exports the used data to a csv format file (disabled by default)', action = 'store_true')
