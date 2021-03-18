@@ -699,6 +699,7 @@ def __monitor(iracelog, typeResult = 'rdev', showElites = True, showInstances = 
 
     # Delete the output file, if it already exists
     if os.path.exists('./monitor/' + output + '.pdf'): os.remove('./monitor/' + output + '.pdf')
+    if not os.path.exists('./monitor/'): os.mkdir('./monitor')
 
     # Loop for monitoring the irace log file
     while True:
@@ -716,8 +717,8 @@ def __monitor(iracelog, typeResult = 'rdev', showElites = True, showInstances = 
                 # Generate plot, wether we have at least one finished iteration
                 if iteration > 1:
                     # Read data and generate training plot
-                    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, bkv, overTime, imputation)
-                    __plotTraining(data, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse, timeLimit)
+                    data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite = __readTraining(iracelog, typeResult, bkv, overTime, imputation, logScale)
+                    __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfig, overTime, showToolTips, instancesSoFar, mediansElite, mediansRegular, alpha, reverse, logScale, timeLimit)
                     plt.title('ITERATIONS 1 TO ' + str(iteration - 1) if (iteration - 1) != 1 else 'ITERATION ' + str(iteration - 1))
                     fig = plt.gcf()
                     fig.subplots_adjust(top = 0.90)
