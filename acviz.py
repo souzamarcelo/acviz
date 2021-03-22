@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+    #!/usr/bin/python3
 import os
 import sys
 import math
@@ -181,7 +181,7 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
     if plotLimit:
         ymin, _ = ax.get_ylim()
         yticks = list(plt.yticks()[0])
-        if all([(x == 0) or (x % int(x) == 0) for x in yticks]):
+        if all([(x == 0) or (x % max(int(x), 1) == 0) for x in yticks]):
             yticks = [int(x) for x in yticks]
         ylabels = [str(x) for x in yticks]
         yticks.append(cutv)
@@ -510,7 +510,7 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
         id += 1
         experiment = {}
         experiment['id'] = id
-        experiment['iteration'] = int(iraceExpLog[i][0])
+        experiment['iteration'] = max(int(iraceExpLog[i][0]), 1)
         experiment['instance'] = int(iraceExpLog[i][1])
         # Determine the time when the execution started (for overTime option)
         experiment['startTime'] = cumulativeTime
@@ -532,9 +532,6 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
     data['instanceseed'] = data['instance']
     data['instance'] = data['instance'].map(lambda x: iraceInstances[x - 1])
     data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1:iraceInstanceNames[x - 1].rindex('.') if '.' in iraceInstanceNames[x - 1] else len(iraceInstanceNames[x - 1])])
-
-    # Consider that preliminary executions belong to the first iteration
-    data['iteration'] = data['iteration'].map(lambda x: max(x, 1))
 
     # Calculate the best known values for each instance
     data['bkv'] = float('inf')
