@@ -129,7 +129,7 @@ def __plotTraining(data, typeResult, restarts, showElites, showInstances, pconfi
     ax.set_xlim((data['xaxis'].min(), data['xaxis'].max()))
     if logScale: ax.set_yscale('log')
     plt.xlabel('Candidate evaluations' if not overTime else 'Cumulative running time [in seconds]')
-    
+
     # Define y label according to the type of results
     if typeResult == 'rdev': plt.ylabel('Relative deviation')
     elif typeResult == 'adev': plt.ylabel('Absolute deviation')
@@ -516,7 +516,7 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
         experiment['startTime'] = cumulativeTime
         cumulativeTime += float(iraceExpLog[i][3])
         experiment['configuration'] = int(iraceExpLog[i][2])
-        experiment['value'] = iraceExp[experiment['instance'] - 1][experiment['configuration'] - 1]
+        experiment['value'] = min(iraceExp[experiment['instance'] - 1][experiment['configuration'] - 1], sys.maxsize)
         # Determine the type of the configuration/execution
         experiment['type'] = ('best' if experiment['configuration'] == elites[-1][0] else
                             'final' if experiment['configuration'] in elites[-1] else
@@ -532,7 +532,7 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
     data['instanceseed'] = data['instance']
     data['instance'] = data['instance'].map(lambda x: iraceInstances[x - 1])
     data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1 if '/' in iraceInstanceNames[x - 1] else 0:iraceInstanceNames[x - 1].rindex('.') if '.' in iraceInstanceNames[x - 1] else len(iraceInstanceNames[x - 1])])
-
+    
     # Calculate the best known values for each instance
     data['bkv'] = float('inf')
     # Read from file, if given
@@ -541,7 +541,7 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
         bkv['bkv'] = pd.to_numeric(bkv['bkv'], errors = 'raise')
         for instance in data['instancename'].unique().tolist():
             data.loc[data['instancename'] == instance, 'bkv'] = bkv[bkv['instancename'] == instance]['bkv'].min()
-
+    
     # Also consider the values found during the configuration process
     for instance in data['instance'].unique().tolist():
         data.loc[data['instance'] == instance, 'bkv'] = min(data[data['instance'] == instance]['value'].min(), data[data['instance'] == instance]['bkv'].min())
@@ -550,12 +550,12 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
     if typeResult == 'rdev':
         data['value'] = data['value'].map(lambda x: x if x != 0 else 0.000001)
         data['bkv'] = data['bkv'].map(lambda x: x if x != 0 else 0.000001)
-
+    
     # Calculate values to plot according to result type
     if typeResult == 'rdev': data['yaxis'] = abs(1 - (data['value'] / data['bkv']))
     elif typeResult == 'adev': data['yaxis'] = abs(data['value'] - data['bkv'])
     else: data['yaxis'] = data['value']
-
+    
     # Avoid zeros
     if logScale: data.loc[data['yaxis'] == 0, 'yaxis'] = data[data['yaxis'] > 0]['yaxis'].min() / 2
 
@@ -576,7 +576,7 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
         instancesSoFar[-1] = np.unique(instancesSoFar[-1])
     # Create a list with amounts
     instancesSoFar = [len(item) for item in instancesSoFar]
-
+    
     # Calculate the median performances for elite and non-elite configurations
     mediansEliteDict = {'iteration': [], 'median': []}
     mediansRegularDict = {'iteration': [], 'median': []}
@@ -608,7 +608,7 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
             element = (int(row['configuration']), int(row['instanceseed']))
             resultsNonElite[element] = row['yaxis']
             pairsNonElite.remove(element)
-
+        
         # An imputation is performed for missing values
         remInst = [x[1] for x in pairsElite] + [x[1] for x in pairsNonElite] # Remaining instances
         remInst = list(set(remInst)) # Without duplicates
@@ -651,7 +651,7 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
     # Create data frame from dictionaries
     mediansElite = pd.DataFrame.from_dict(mediansEliteDict)
     mediansRegular = pd.DataFrame.from_dict(mediansRegularDict)
-
+    
     return data, restarts, instancesSoFar, overTime, mediansRegular, mediansElite
 
 
