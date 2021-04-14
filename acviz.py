@@ -415,8 +415,8 @@ def __readTest(iracelog, typeResult, bkvFile):
     robjects.r['load'](iracelog)
     # Get the test instances, test and training instance names, tested configurations, test results, elite configurations
     testInstances = list(np.array(robjects.r('rownames(iraceResults$testing$experiments)')))
-    testInstanceNames = list([instance[instance.rindex('/') + 1:instance.rindex('.') if '.' in instance else len(instance)] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
-    trainInstanceNames = [x[x.rindex('/') + 1:x.rindex('.') if '.' in x else len(x)] for x in list(set(np.array(robjects.r('iraceResults$scenario$instances'))))]
+    testInstanceNames = list([instance[instance.rindex('/') + 1 if '/' in instance else 0:instance.rindex('.') if '.' in instance else len(instance)] for instance in np.array(robjects.r('iraceResults$scenario$testInstances'))])
+    trainInstanceNames = [x[x.rindex('/') + 1 if '/' in x else 0:x.rindex('.') if '.' in x else len(x)] for x in list(set(np.array(robjects.r('iraceResults$scenario$instances'))))]
     testConfigurations = [int(x) for x in np.array(robjects.r('colnames(iraceResults$testing$experiments)'))]
     testResultsIrace = np.array(robjects.r('iraceResults$testing$experiments'))
     firstElites = [int(str(robjects.r('iraceResults$allElites[[' + str(i) + ']]')).replace('[1]', '').strip().split()[0]) for i in range(1, int(robjects.r('iraceResults$state$indexIteration')[0]))]
@@ -441,7 +441,7 @@ def __readTest(iracelog, typeResult, bkvFile):
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
     iraceExp = np.array(robjects.r('iraceResults$experiments'))
     iraceInstances = np.array(robjects.r('iraceResults$state$.irace$instancesList'))[0]
-    iraceInstanceNames = [x[x.rindex('/') + 1:x.rindex('.') if '.' in x else len(x)] for x in list(np.array(robjects.r('iraceResults$scenario$instances')))]
+    iraceInstanceNames = [x[x.rindex('/') + 1 if '/' in x else 0:x.rindex('.') if '.' in x else len(x)] for x in list(np.array(robjects.r('iraceResults$scenario$instances')))]
     # Get all executions performed in the training phase
     experiments = []
     for i in range(len(iraceExpLog)):
@@ -531,7 +531,7 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
     # Determine <instance, seed> pairs, instance IDs and instance names
     data['instanceseed'] = data['instance']
     data['instance'] = data['instance'].map(lambda x: iraceInstances[x - 1])
-    data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1:iraceInstanceNames[x - 1].rindex('.') if '.' in iraceInstanceNames[x - 1] else len(iraceInstanceNames[x - 1])])
+    data['instancename'] = data['instance'].map(lambda x: iraceInstanceNames[x - 1][iraceInstanceNames[x - 1].rindex('/') + 1 if '/' in iraceInstanceNames[x - 1] else 0:iraceInstanceNames[x - 1].rindex('.') if '.' in iraceInstanceNames[x - 1] else len(iraceInstanceNames[x - 1])])
 
     # Calculate the best known values for each instance
     data['bkv'] = float('inf')
