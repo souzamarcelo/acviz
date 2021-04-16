@@ -516,7 +516,8 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
         experiment['startTime'] = cumulativeTime
         cumulativeTime += float(iraceExpLog[i][3])
         experiment['configuration'] = int(iraceExpLog[i][2])
-        experiment['value'] = min(iraceExp[experiment['instance'] - 1][experiment['configuration'] - 1], sys.maxsize)
+        value = iraceExp[experiment['instance'] - 1][experiment['configuration'] - 1]
+        experiment['value'] = min(value, sys.maxsize) if value != float('inf') else float('inf')
         # Determine the type of the configuration/execution
         experiment['type'] = ('best' if experiment['configuration'] == elites[-1][0] else
                             'final' if experiment['configuration'] in elites[-1] else
