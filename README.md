@@ -1,6 +1,23 @@
 # acviz: Algorithm Configuration Visualizations for irace
 
-This Python program provides visualizations of the automatic algorithm configuration process with [irace](http://iridia.ulb.ac.be/irace).
+This Python program provides visualizations of the automatic algorithm configuration process with [irace](http://iridia.ulb.ac.be/irace). The following article describes capopt in detail and presents an extensive experimental evaluation. You can also check the [supplementary material](https://doi.org/10.5281/zenodo.4028904) for further experimental details.
+
++ Marcelo de Souza, Marcus Ritt, Manuel López-Ibáñez, and Leslie Pérez Cáceres. **ACVIZ: Algorithm Configuration Visualizations for irace**. Submitted to Operations Research Perspectives, 2021.<br>
+[preprint will be available soon | [supplementary material at Zenodo](https://doi.org/10.5281/zenodo.4028904)]
+
+#### Bibtex
+```bibtex
+@article{DeSouzaEtAl2021acviz,
+   title   = {ACVIZ: Algorithm Configuration Visualizations for irace},
+   author  = {Souza, Marcelo de and Ritt, Marcus and L{\'o}pez-Ib{\'a}{\~n}ez, Manuel and Pérez Cáceres, Leslie},
+   journal = {Submitted to Operations Research Perspectives},
+   year    = {2021}
+}
+```
+
+Please, make sure to reference us if you use *acviz* in your research.
+
+***
 
 ## People
 
@@ -9,6 +26,8 @@ This Python program provides visualizations of the automatic algorithm configura
 **Contributors:** [Marcus Ritt](https://www.inf.ufrgs.br/~mrpritt), [Manuel López-Ibáñez](http://lopez-ibanez.eu) and [Leslie Pérez Cáceres](https://sites.google.com/site/leslieperez).
 
 **Contact:** marcelo.desouza@udesc.br
+
+***
 
 ## Dependencies
 
@@ -21,47 +40,65 @@ The script requires [Python 3](https://www.python.org) and the following Python 
 
 Since irace exports the log file using the R syntax and format, you will need the [R software environment](https://www.r-project.org) installed (rpy2 module will communicate with R to get the necessary data).
 
+***
+
 ## Usage
 
 To use *acviz* you need to download the `acviz.py` script and run it according to the following instructions (make sure that the aforementioned dependencies were all satisfied). It is possible to control several elements of the visualization, including:
-+ plot executions over configuration time;
++ change the type of result to be presented;
++ change the imputation strategy;
++ change the scaling strategy;
 + disable the identification of instances and executions of elite configurations; 
 + show the configurations associated with the best executions;
-+ change the imputation strategy;
++ plot executions over configuration time;
 + control the opacity of the points;
 + control the values and colors of the test plot;
-+ export the produced plot.
++ export the produced plot;
++ monitor the irace log file during the execution of irace.
 
 **Input:** an irace log file (typically called irace.Rdata) and optional parameters to control the plot details and the output format.
 
 **Output:** a matplotlib plot.
 
 ```
-usage: acviz.py [-h] [--iracelog <file>] [-v] [--overtime] [--bkv <file>]
-                [--noelites] [--pconfig <p>] [--noinstances]
-                [--imputation <imp>] [--alpha <alpha>] [--testing]
-                [--testcolors <col>] [--testresults <res>] [--exportdata]
-                [--exportplot] [--output <name>]
+usage: acviz.py [-h] [--iracelog <file>] [-v] [--typeresult <res>] [--bkv <file>]
+                [--imputation <imp>] [--scale <s>] [--noelites] [--noinstances] [--pconfig <p>]
+                [--overtime] [--alpha <alpha>] [--timelimit <tl>] [--testing] [--testcolors <col>]
+                [--exportdata] [--exportplot] [--output <name>] [--monitor] [--reverse]
 
 required arguments:
-  --iracelog <file>    input of irace log file (.Rdata)
+  --iracelog <file>   input of irace log file (.Rdata)
 
 optional arguments:
-  -v, --version        show description and exit
-  --overtime           plot the execution over the accumulated configuration time (disabled by default)
-  --bkv <file>         file containing best known values for the instances used (null by default)
-  --noelites           enables identification of elite configurations (disabled by default)
-  --pconfig <p>        when --configurations, show configurations of the p% best executions [0, 100] (default: 0)
-  --noinstances        enables identification of instances (disabled by default)
-  --imputation <imp>   imputation strategy for computing medians [elite, alive] (default: elite)
-  --alpha <alpha>      opacity of the points, the greater the more opaque [0, 1] (default: 1)
-  --testing            plots the testing data instead of the configuration process (disabled by default)
-  --testcolors <col>   option for how apply the colormap in the test plot [overall, instance] (default: instance)
-  --testresults <res>  defines how the results should be presented in the test plot [rdev, adev, raw] (default: rdev)
-  --exportdata         exports the used data to a csv format file (disabled by default)
-  --exportplot         exports the resulting plot to png and pdf files (disabled by default)
-  --output <name>      defines a name for the output files (default: export)
+  -v, --version       show description and exit
+  --typeresult <res>  defines how the results should be presented in training or test plot [aval,
+                      adev, rdev] (default: rdev)
+  --bkv <file>        file containing best known values for the instances used (null by default)
+  --imputation <imp>  imputation strategy for computing medians [elite, alive] (default: elite)
+  --scale <s>         defines the strategy for the scale of y-axis of the training plot [log, lin]
+                      (default: log)
+  --noelites          disables identification of elite configurations (disabled by default)
+  --noinstances       disables identification of instances (disabled by default)
+  --pconfig <p>       show configurations of the p% best executions [0, 100] (default: 0)
+  --overtime          plot the execution over the accumulated configuration time (disabled by
+                      default)
+  --alpha <alpha>     opacity of the points, the greater the more opaque [0, 1] (default: 1)
+  --timelimit <tl>    when plotting running times (absolute values and linear scale), executions with
+                      value greater than or equal to <tl> will be considered as not solved (NS) and
+                      presented accordingly (default: 0 [disabled])
+  --testing           plots the testing data instead of the configuration process (disabled by
+                      default)
+  --testcolors <col>  option for how apply the colormap in the test plot [overall, instance]
+                      (default: instance)
+  --exportdata        exports the used data to a csv format file (disabled by default)
+  --exportplot        exports the resulting plot to png and pdf files (disabled by default)
+  --output <name>     defines a name for the output files (default: export)
+  --monitor           monitors the irace log file during irace execution; produces one plot for each
+                      iteration (disabled by default)
+  --reverse           reverses y-axis (disabled by default)
 ```
+
+***
 
 ## Examples
 
