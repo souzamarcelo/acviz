@@ -1,17 +1,21 @@
 # acviz: Algorithm Configuration Visualizations for irace
 
-This Python program provides visualizations of the automatic algorithm configuration process with [irace](http://iridia.ulb.ac.be/irace). The following article describes capopt in detail and presents an extensive experimental evaluation. You can also check the [supplementary material](https://doi.org/10.5281/zenodo.4028904) for further experimental details.
+This Python program provides visualizations of the automatic algorithm configuration process with [irace](http://iridia.ulb.ac.be/irace). The following article describes *acviz* in detail and presents a comprehensive experimental evaluation. You can also check the [supplementary material](https://doi.org/10.5281/zenodo.4028904) for further experimental details.
 
-+ Marcelo de Souza, Marcus Ritt, Manuel López-Ibáñez, and Leslie Pérez Cáceres. **ACVIZ: Algorithm Configuration Visualizations for irace**. Submitted to Operations Research Perspectives, 2021.<br>
-[preprint will be available soon | [supplementary material at Zenodo](https://doi.org/10.5281/zenodo.4028904)]
++ + Marcelo De Souza, Marcus Ritt, Manuel López-Ibáñez, and Leslie Pérez Cáceres. **ACVIZ: A Tool for the Visual Analysis of the Configuration of Algorithms with irace**. Operations Research Perspectives, 8:100-186, 2021.<br>
+[[link here](https://www.sciencedirect.com/science/article/pii/S2214716021000099) | [supplementary material at Zenodo](https://doi.org/10.5281/zenodo.4028904)]
 
 #### Bibtex
 ```bibtex
 @article{DeSouzaEtAl2021acviz,
-   title   = {ACVIZ: Algorithm Configuration Visualizations for irace},
-   author  = {Souza, Marcelo de and Ritt, Marcus and L{\'o}pez-Ib{\'a}{\~n}ez, Manuel and Pérez Cáceres, Leslie},
-   journal = {Submitted to Operations Research Perspectives},
-   year    = {2021}
+   title      = {ACVIZ: A Tool for the Visual Analysis of the Configuration of Algorithms with irace},
+   author     = {Marcelo de Souza and Marcus Ritt and Manuel L{\'o}pez-Ib{\'a}{\~n}ez and Leslie P{\'e}rez C{\'a}ceres},
+   journal    = {Operations Research Perspectives},
+   year       = 2021,
+   volume     = 8,
+   pages      = 100--186,
+   doi        = {10.1016/j.orp.2021.100186},
+   supplement = {https://zenodo.org/record/4714582}
 }
 ```
 
