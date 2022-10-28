@@ -498,7 +498,8 @@ def __readTraining(iracelog, typeResult, bkvFile, overTime, imputation, logScale
     iraceExpLog = np.array(robjects.r('iraceResults$experimentLog'))
     iraceInstances = np.array(robjects.r('iraceResults$state$.irace$instancesList'))[0]
     iraceInstanceNames = np.array(robjects.r('iraceResults$scenario$instances'))
-
+    iraceInstanceNames = [str(ins) for ins in iraceInstanceNames]
+    
     # Create a list with the elite configurations of each iteration
     elites = []
     for i in range(1, int(robjects.r('iraceResults$state$indexIteration')[0])):
